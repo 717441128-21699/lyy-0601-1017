@@ -1,0 +1,261 @@
+@use '@/styles/variables.scss' as *;
+
+.minePage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+  .profileSection {
+    padding: $page-padding;
+    padding-top: 48rpx;
+    padding-bottom: 80rpx;
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    margin-bottom: -40rpx;
+
+    .profileCard {
+      display: flex;
+      align-items: center;
+
+      .avatar {
+        width: 128rpx;
+        height: 128rpx;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffffff 0%, #f0f5ff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: $spacing-lg;
+        font-size: 56rpx;
+        font-weight: $font-weight-bold;
+        color: $color-primary;
+        box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+      }
+
+      .profileInfo {
+        flex: 1;
+
+        .userName {
+          font-size: $font-size-xl;
+          font-weight: $font-weight-bold;
+          color: $color-text-white;
+          margin-bottom: $spacing-xs;
+        }
+
+        .userDept {
+          font-size: $font-size-sm;
+          color: rgba(255, 255, 255, 0.85);
+          margin-bottom: 4rpx;
+        }
+
+        .userRole {
+          font-size: $font-size-xs;
+          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.15);
+          padding: 4rpx 16rpx;
+          border-radius: $radius-sm;
+          display: inline-block;
+        }
+      }
+    }
+  }
+
+  .contentSection {
+    padding: 0 $page-padding;
+    position: relative;
+    z-index: 1;
+
+    .functionGrid {
+      background: $color-bg-card;
+      border-radius: $radius-lg;
+      padding: $spacing-lg;
+      margin-bottom: $spacing-md;
+      box-shadow: $shadow-card;
+      display: flex;
+      flex-wrap: wrap;
+
+      .functionItem {
+        flex: 0 0 25%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: $spacing-md 0;
+        transition: all $transition-base;
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        .functionIcon {
+          width: 88rpx;
+          height: 88rpx;
+          border-radius: $radius-lg;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 40rpx;
+          margin-bottom: $spacing-sm;
+
+          &.draft {
+            background: linear-gradient(135deg, #FFF7E6 0%, #FFE7BA 100%);
+          }
+
+          &.history {
+            background: linear-gradient(135deg, #E6F7FF 0%, #BAE7FF 100%);
+          }
+
+          &.submit {
+            background: linear-gradient(135deg, #F6FFED 0%, #D9F7BE 100%);
+          }
+
+          &.about {
+            background: linear-gradient(135deg, #F9F0FF 0%, #EFDBFF 100%);
+          }
+        }
+
+        .functionLabel {
+          font-size: $font-size-xs;
+          color: $color-text-secondary;
+        }
+
+        .badge {
+          position: absolute;
+          top: 0;
+          right: 20rpx;
+          min-width: 32rpx;
+          height: 32rpx;
+          background: $color-error;
+          border-radius: $radius-round;
+          font-size: 20rpx;
+          color: $color-text-white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 8rpx;
+        }
+      }
+    }
+
+    .tabSection {
+      display: flex;
+      gap: $spacing-md;
+      margin-bottom: $spacing-md;
+
+      .tabItem {
+        flex: 1;
+        height: $button-height-sm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: $color-bg-card;
+        border-radius: $radius-button;
+        font-size: $font-size-sm;
+        color: $color-text-secondary;
+        border: 2rpx solid transparent;
+        transition: all $transition-base;
+
+        &.active {
+          background: rgba(22, 93, 255, 0.1);
+          color: $color-primary;
+          border-color: $color-primary;
+        }
+      }
+    }
+
+    .recordList {
+      .recordCard {
+        background: $color-bg-card;
+        border-radius: $radius-lg;
+        padding: $spacing-lg;
+        margin-bottom: $spacing-md;
+        box-shadow: $shadow-card;
+        transition: all $transition-base;
+
+        &:active {
+          transform: scale(0.99);
+        }
+
+        .recordHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: $spacing-md;
+
+          .recordTitle {
+            font-size: $font-size-md;
+            font-weight: $font-weight-semibold;
+            color: $color-text-primary;
+            flex: 1;
+            @include text-ellipsis;
+          }
+        }
+
+        .recordMeta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: $spacing-md;
+          margin-bottom: $spacing-md;
+
+          .metaItem {
+            font-size: $font-size-xs;
+            color: $color-text-tertiary;
+            display: flex;
+            align-items: center;
+            gap: 4rpx;
+          }
+        }
+
+        .recordStats {
+          display: flex;
+          gap: $spacing-lg;
+          padding-top: $spacing-md;
+          border-top: 1rpx solid $color-divider;
+
+          .statItem {
+            text-align: center;
+
+            .statValue {
+              font-size: $font-size-lg;
+              font-weight: $font-weight-semibold;
+              color: $color-primary;
+            }
+
+            .statLabel {
+              font-size: $font-size-xs;
+              color: $color-text-tertiary;
+              margin-top: 4rpx;
+            }
+          }
+        }
+
+        .recordFooter {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: $spacing-md;
+          border-top: 1rpx solid $color-divider;
+          margin-top: -$spacing-md;
+
+          .checkTime {
+            font-size: $font-size-xs;
+            color: $color-text-tertiary;
+          }
+
+          .actionBtn {
+            @include button-reset;
+            height: 56rpx;
+            padding: 0 $spacing-md;
+            background: $color-primary;
+            border-radius: $radius-button;
+            color: $color-text-white;
+            font-size: $font-size-xs;
+
+            &.secondary {
+              background: $color-bg-card;
+              border: 2rpx solid $color-border;
+              color: $color-text-secondary;
+            }
+          }
+        }
+      }
+    }
+  }
+}

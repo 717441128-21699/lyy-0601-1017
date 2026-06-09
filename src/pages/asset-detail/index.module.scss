@@ -1,0 +1,268 @@
+@use '@/styles/variables.scss' as *;
+
+.assetDetailPage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+  .content {
+    padding: $page-padding;
+  }
+
+  .infoCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: $spacing-lg;
+
+      .assetIcon {
+        width: 120rpx;
+        height: 120rpx;
+        border-radius: $radius-lg;
+        background: linear-gradient(135deg, #f0f5ff 0%, #e6efff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: $spacing-lg;
+        font-size: 56rpx;
+        flex-shrink: 0;
+      }
+
+      .basicInfo {
+        flex: 1;
+
+        .assetName {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-semibold;
+          color: $color-text-primary;
+          margin-bottom: $spacing-sm;
+        }
+
+        .assetNo {
+          font-size: $font-size-sm;
+          color: $color-text-tertiary;
+          margin-bottom: $spacing-sm;
+        }
+      }
+    }
+
+    .infoGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-lg;
+
+      .infoItem {
+        flex: 0 0 calc(50% - 12rpx);
+
+        .label {
+          font-size: $font-size-xs;
+          color: $color-text-tertiary;
+          margin-bottom: 4rpx;
+        }
+
+        .value {
+          font-size: $font-size-sm;
+          color: $color-text-primary;
+          font-weight: $font-weight-medium;
+        }
+      }
+    }
+  }
+
+  .checkSection {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .sectionTitle {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+      margin-bottom: $spacing-lg;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .titleIcon {
+        font-size: 32rpx;
+      }
+    }
+
+    .statusGrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-md;
+      margin-bottom: $spacing-lg;
+
+      .statusOption {
+        flex: 0 0 calc(50% - 12rpx);
+        padding: $spacing-md;
+        background: $color-bg-page;
+        border: 4rpx solid transparent;
+        border-radius: $radius-md;
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        transition: all $transition-base;
+
+        &.selected {
+          border-color: $color-primary;
+          background: rgba(22, 93, 255, 0.08);
+        }
+
+        .optionIcon {
+          font-size: 36rpx;
+        }
+
+        .optionName {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+        }
+      }
+    }
+
+    .photoUpload {
+      margin-bottom: $spacing-lg;
+
+      .uploadTitle {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $color-text-primary;
+        margin-bottom: $spacing-md;
+      }
+
+      .photoList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-md;
+
+        .photoItem {
+          position: relative;
+          width: 180rpx;
+          height: 180rpx;
+          border-radius: $radius-md;
+          overflow: hidden;
+
+          Image {
+            width: 100%;
+            height: 100%;
+          }
+
+          .deleteBtn {
+            position: absolute;
+            top: 8rpx;
+            right: 8rpx;
+            width: 40rpx;
+            height: 40rpx;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: $color-text-white;
+            font-size: 24rpx;
+          }
+        }
+
+        .addPhoto {
+          width: 180rpx;
+          height: 180rpx;
+          background: $color-bg-page;
+          border: 2rpx dashed $color-border;
+          border-radius: $radius-md;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+
+          .addIcon {
+            font-size: 40rpx;
+            color: $color-text-tertiary;
+            margin-bottom: 4rpx;
+          }
+
+          .addText {
+            font-size: $font-size-xs;
+            color: $color-text-tertiary;
+          }
+        }
+      }
+    }
+
+    .remarkInput {
+      .remarkTitle {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $color-text-primary;
+        margin-bottom: $spacing-md;
+      }
+
+      .textarea {
+        width: 100%;
+        min-height: 160rpx;
+        padding: $spacing-md;
+        background: $color-bg-page;
+        border-radius: $radius-md;
+        font-size: $font-size-sm;
+        color: $color-text-primary;
+        line-height: 1.6;
+        box-sizing: border-box;
+
+        &::placeholder {
+          color: $color-text-tertiary;
+        }
+      }
+
+      .charCount {
+        text-align: right;
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+        margin-top: $spacing-sm;
+      }
+    }
+  }
+
+  .bottomBar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: $spacing-lg $page-padding calc(env(safe-area-inset-bottom) + $spacing-lg);
+    background: $color-bg-card;
+    box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+    display: flex;
+    gap: $spacing-md;
+    z-index: 100;
+
+    .btnSave {
+      @include button-reset;
+      flex: 1;
+      height: $button-height-lg;
+      background: $color-bg-card;
+      border: 2rpx solid $color-primary;
+      border-radius: $radius-button;
+      color: $color-primary;
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+    }
+
+    .btnSubmit {
+      @include button-reset;
+      flex: 2;
+      height: $button-height-lg;
+      background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+      border-radius: $radius-button;
+      color: $color-text-white;
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+    }
+  }
+}

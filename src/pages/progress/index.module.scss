@@ -1,0 +1,225 @@
+@use '@/styles/variables.scss' as *;
+
+.progressPage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+  .overviewSection {
+    padding: $page-padding;
+    padding-top: 40rpx;
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    margin-bottom: $spacing-md;
+
+    .overviewTitle {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-white;
+      margin-bottom: $spacing-lg;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .titleIcon {
+        font-size: 36rpx;
+      }
+    }
+
+    .progressOverview {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: $radius-lg;
+      padding: $spacing-lg;
+      backdrop-filter: blur(10px);
+      margin-bottom: $spacing-lg;
+
+      .progressText {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-md;
+
+        .label {
+          font-size: $font-size-sm;
+          color: rgba(255, 255, 255, 0.85);
+        }
+
+        .value {
+          font-size: $font-size-xxl;
+          font-weight: $font-weight-bold;
+          color: $color-text-white;
+        }
+      }
+    }
+
+    .statsRow {
+      display: flex;
+      gap: $spacing-md;
+
+      .statCard {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: $radius-md;
+        padding: $spacing-md;
+        text-align: center;
+        backdrop-filter: blur(10px);
+
+        .statValue {
+          font-size: $font-size-xl;
+          font-weight: $font-weight-bold;
+          color: $color-text-white;
+          margin-bottom: 4rpx;
+        }
+
+        .statLabel {
+          font-size: $font-size-xs;
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+  }
+
+  .rankList {
+    padding: 0 $page-padding;
+  }
+
+  .rankCard {
+    display: flex;
+    align-items: center;
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+    transition: all $transition-base;
+
+    &:active {
+      transform: scale(0.99);
+    }
+
+    .rankBadge {
+      width: 64rpx;
+      height: 64rpx;
+      border-radius: $radius-md;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: $spacing-lg;
+      flex-shrink: 0;
+      font-size: $font-size-lg;
+      font-weight: $font-weight-bold;
+      color: $color-text-white;
+
+      &.rank1 {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        box-shadow: 0 4rpx 12rpx rgba(255, 165, 0, 0.4);
+      }
+
+      &.rank2 {
+        background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+        box-shadow: 0 4rpx 12rpx rgba(192, 192, 192, 0.4);
+      }
+
+      &.rank3 {
+        background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+        box-shadow: 0 4rpx 12rpx rgba(205, 127, 50, 0.4);
+      }
+
+      &.other {
+        background: $color-bg-page;
+        color: $color-text-secondary;
+        font-size: $font-size-md;
+      }
+    }
+
+    .deptInfo {
+      flex: 1;
+      min-width: 0;
+
+      .deptHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-sm;
+
+        .deptName {
+          font-size: $font-size-md;
+          font-weight: $font-weight-semibold;
+          color: $color-text-primary;
+          @include text-ellipsis;
+        }
+
+        .remindedTag {
+          font-size: $font-size-xs;
+          color: $color-warning;
+          background: rgba(255, 125, 0, 0.1);
+          padding: 4rpx 12rpx;
+          border-radius: $radius-sm;
+          flex-shrink: 0;
+          margin-left: $spacing-sm;
+        }
+      }
+
+      .managerInfo {
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+        margin-bottom: $spacing-md;
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+
+        .manager {
+          display: flex;
+          align-items: center;
+          gap: 4rpx;
+        }
+
+        .lastCheck {
+          display: flex;
+          align-items: center;
+          gap: 4rpx;
+        }
+      }
+
+      .stats {
+        display: flex;
+        gap: $spacing-lg;
+        margin-bottom: $spacing-sm;
+
+        .statItem {
+          font-size: $font-size-xs;
+          color: $color-text-secondary;
+
+          .num {
+            font-weight: $font-weight-semibold;
+            color: $color-primary;
+          }
+        }
+      }
+    }
+
+    .actionArea {
+      margin-left: $spacing-md;
+      flex-shrink: 0;
+
+      .remindBtn {
+        @include button-reset;
+        height: $button-height-sm;
+        padding: 0 $spacing-lg;
+        background: $color-warning;
+        border-radius: $radius-button;
+        color: $color-text-white;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-medium;
+        transition: all $transition-base;
+
+        &:active {
+          opacity: 0.9;
+          transform: scale(0.96);
+        }
+
+        &.disabled {
+          background: $color-text-disabled;
+        }
+      }
+    }
+  }
+}

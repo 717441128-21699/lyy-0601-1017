@@ -1,0 +1,232 @@
+@use '@/styles/variables.scss' as *;
+
+.roomAssetsPage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+  .content {
+    padding: $page-padding;
+  }
+
+  .roomInfoCard {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    color: $color-text-white;
+    box-shadow: $shadow-card;
+
+    .roomName {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      margin-bottom: $spacing-sm;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .roomIcon {
+        font-size: 36rpx;
+      }
+    }
+
+    .roomLocation {
+      font-size: $font-size-sm;
+      opacity: 0.9;
+      margin-bottom: $spacing-md;
+    }
+
+    .roomStats {
+      display: flex;
+      gap: $spacing-xl;
+
+      .statItem {
+        .statValue {
+          font-size: 48rpx;
+          font-weight: $font-weight-bold;
+          line-height: 1.2;
+        }
+
+        .statLabel {
+          font-size: $font-size-xs;
+          opacity: 0.85;
+        }
+      }
+    }
+  }
+
+  .progressSection {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .progressHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-md;
+
+      .progressTitle {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+
+      .progressText {
+        font-size: $font-size-md;
+        font-weight: $font-weight-bold;
+        color: $color-primary;
+      }
+    }
+  }
+
+  .filterSection {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .filterItem {
+      flex: 1;
+      padding: $spacing-sm $spacing-md;
+      background: $color-bg-card;
+      border-radius: $radius-button;
+      text-align: center;
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      transition: all $transition-base;
+
+      &.active {
+        background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+        color: $color-text-white;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+
+  .assetList {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .assetCard {
+      background: $color-bg-card;
+      border-radius: $radius-lg;
+      padding: $spacing-lg;
+      box-shadow: $shadow-card;
+
+      .assetHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: $spacing-md;
+
+        .assetInfo {
+          flex: 1;
+
+          .assetName {
+            font-size: $font-size-md;
+            font-weight: $font-weight-semibold;
+            color: $color-text-primary;
+            margin-bottom: $spacing-xs;
+          }
+
+          .assetNo {
+            font-size: $font-size-sm;
+            color: $color-text-tertiary;
+          }
+        }
+      }
+
+      .assetMeta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-md;
+        margin-bottom: $spacing-md;
+
+        .metaItem {
+          display: flex;
+          align-items: center;
+          gap: 8rpx;
+          font-size: $font-size-sm;
+          color: $color-text-secondary;
+
+          .metaIcon {
+            font-size: 24rpx;
+          }
+        }
+      }
+
+      .assetActions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .actionBtn {
+          @include button-reset;
+          padding: $spacing-sm $spacing-lg;
+          background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+          border-radius: $radius-button;
+          color: $color-text-white;
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+        }
+
+        .checkedBtn {
+          @include button-reset;
+          padding: $spacing-sm $spacing-lg;
+          background: rgba(0, 180, 42, 0.1);
+          border-radius: $radius-button;
+          color: #00B42A;
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+        }
+      }
+    }
+  }
+
+  .bottomBar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: $spacing-lg $page-padding calc(env(safe-area-inset-bottom) + $spacing-lg);
+    background: $color-bg-card;
+    box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+    display: flex;
+    gap: $spacing-md;
+    z-index: 100;
+
+    .btnScan {
+      @include button-reset;
+      flex: 1;
+      height: $button-height-lg;
+      background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+      border-radius: $radius-button;
+      color: $color-text-white;
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $spacing-sm;
+
+      .scanIcon {
+        font-size: 36rpx;
+      }
+    }
+
+    .btnSearch {
+      @include button-reset;
+      flex: 0 0 auto;
+      width: $button-height-lg;
+      height: $button-height-lg;
+      background: $color-bg-page;
+      border-radius: $radius-button;
+      font-size: 36rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}

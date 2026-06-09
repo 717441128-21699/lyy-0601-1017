@@ -1,0 +1,62 @@
+@use '@/styles/variables.scss' as *;
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+
+  &.normal {
+    background: rgba(0, 180, 42, 0.1);
+    color: $color-success;
+  }
+
+  &.idle {
+    background: rgba(255, 125, 0, 0.1);
+    color: $color-warning;
+  }
+
+  &.lost {
+    background: rgba(245, 63, 63, 0.1);
+    color: $color-error;
+  }
+
+  &.mismatch {
+    background: rgba(134, 144, 156, 0.1);
+    color: $color-text-tertiary;
+  }
+
+  &.unchecked {
+    background: rgba(22, 93, 255, 0.1);
+    color: $color-primary;
+  }
+
+  &.pending {
+    background: rgba(134, 144, 156, 0.1);
+    color: $color-text-tertiary;
+  }
+
+  &.ongoing {
+    background: rgba(22, 93, 255, 0.1);
+    color: $color-primary;
+  }
+
+  &.completed {
+    background: rgba(0, 180, 42, 0.1);
+    color: $color-success;
+  }
+
+  &.processing {
+    background: rgba(114, 46, 209, 0.1);
+    color: #722ED1;
+  }
+
+  &.resolved {
+    background: rgba(0, 180, 42, 0.1);
+    color: $color-success;
+  }
+}

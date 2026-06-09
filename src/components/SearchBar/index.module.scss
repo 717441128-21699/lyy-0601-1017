@@ -1,0 +1,40 @@
+@use '@/styles/variables.scss' as *;
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 0 $spacing-lg;
+  height: $button-height-md;
+  box-shadow: $shadow-card;
+
+  .searchIcon {
+    font-size: 32rpx;
+    color: $color-text-tertiary;
+    margin-right: $spacing-sm;
+  }
+
+  .searchInput {
+    flex: 1;
+    font-size: $font-size-md;
+    color: $color-text-primary;
+    background: transparent;
+    border: none;
+    outline: none;
+
+    &::placeholder {
+      color: $color-text-tertiary;
+    }
+  }
+
+  .clearBtn {
+    padding: $spacing-xs;
+    margin-left: $spacing-sm;
+
+    .clearIcon {
+      font-size: 32rpx;
+      color: $color-text-tertiary;
+    }
+  }
+}

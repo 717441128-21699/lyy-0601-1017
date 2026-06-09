@@ -1,0 +1,92 @@
+@use '@/styles/variables.scss' as *;
+
+.tasksPage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+
+  .statsSection {
+    padding: $page-padding;
+    padding-top: 40rpx;
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    margin-bottom: $spacing-md;
+
+    .statsGrid {
+      display: flex;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: $radius-lg;
+      padding: $spacing-lg 0;
+      backdrop-filter: blur(10px);
+
+      .statItem {
+        flex: 1;
+        text-align: center;
+        position: relative;
+
+        &:not(:last-child)::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 1rpx;
+          height: 60%;
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .statIcon {
+          font-size: 48rpx;
+          margin-bottom: $spacing-sm;
+        }
+
+        .statValue {
+          font-size: $font-size-xxl;
+          font-weight: $font-weight-bold;
+          color: $color-text-white;
+          line-height: 1.2;
+          margin-bottom: 4rpx;
+        }
+
+        .statLabel {
+          font-size: $font-size-xs;
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+  }
+
+  .filterSection {
+    padding: 0 $page-padding;
+    margin-bottom: $spacing-md;
+
+    .filterTabs {
+      display: flex;
+      background: $color-bg-card;
+      border-radius: $radius-button;
+      padding: 8rpx;
+      box-shadow: $shadow-card;
+
+      .tabItem {
+        flex: 1;
+        height: $button-height-sm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: $radius-button;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $color-text-secondary;
+        transition: all $transition-base;
+
+        &.active {
+          background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+          color: $color-text-white;
+          box-shadow: 0 4rpx 12rpx rgba(22, 93, 255, 0.3);
+        }
+      }
+    }
+  }
+
+  .taskList {
+    padding: 0 $page-padding;
+  }
+}

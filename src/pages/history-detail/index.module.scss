@@ -1,0 +1,217 @@
+@use '@/styles/variables.scss' as *;
+
+.historyDetailPage {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 48rpx);
+
+  .content {
+    padding: $page-padding;
+  }
+
+  .headerCard {
+    background: linear-gradient(135deg, #722ED1 0%, #B37FEB 100%);
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    color: $color-text-white;
+    box-shadow: $shadow-card;
+
+    .historyName {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      margin-bottom: $spacing-sm;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .historyIcon {
+        font-size: 36rpx;
+      }
+    }
+
+    .historyMeta {
+      font-size: $font-size-sm;
+      opacity: 0.9;
+      margin-bottom: $spacing-md;
+
+      .metaItem {
+        margin-bottom: 8rpx;
+        display: flex;
+        gap: $spacing-sm;
+
+        .metaLabel {
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .historyStats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-md;
+
+      .statItem {
+        flex: 0 0 calc(25% - 18rpx);
+        text-align: center;
+
+        .statValue {
+          font-size: 36rpx;
+          font-weight: $font-weight-bold;
+          line-height: 1.2;
+          margin-bottom: 4rpx;
+        }
+
+        .statLabel {
+          font-size: $font-size-xs;
+          opacity: 0.85;
+        }
+      }
+    }
+  }
+
+  .section {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .sectionHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-lg;
+
+      .sectionTitle {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+
+        .titleIcon {
+          font-size: 32rpx;
+        }
+      }
+
+      .sectionAction {
+        font-size: $font-size-sm;
+        color: $color-primary;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+
+  .exceptionList {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .exceptionItem {
+      background: $color-bg-page;
+      border-radius: $radius-md;
+      padding: $spacing-md;
+      border-left: 8rpx solid $color-asset-lost;
+
+      &.idle {
+        border-left-color: $color-asset-idle;
+      }
+
+      &.mismatch {
+        border-left-color: $color-asset-mismatch;
+      }
+
+      .exceptionHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-sm;
+
+        .assetName {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+        }
+      }
+
+      .exceptionMeta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-md;
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+
+        .metaItem {
+          display: flex;
+          align-items: center;
+          gap: 4rpx;
+        }
+      }
+    }
+  }
+
+  .roomProgress {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .roomItem {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      .roomHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .roomName {
+          font-size: $font-size-sm;
+          color: $color-text-primary;
+          display: flex;
+          align-items: center;
+          gap: 8rpx;
+
+          .roomIcon {
+            font-size: 24rpx;
+          }
+        }
+
+        .roomCount {
+          font-size: $font-size-xs;
+          color: $color-text-tertiary;
+        }
+      }
+    }
+  }
+
+  .actionCard {
+    background: linear-gradient(135deg, #f0f5ff 0%, #e6efff 100%);
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    gap: $spacing-md;
+
+    .actionItem {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-sm;
+      padding: $spacing-md;
+      background: $color-bg-card;
+      border-radius: $radius-md;
+
+      .actionIcon {
+        font-size: 48rpx;
+      }
+
+      .actionText {
+        font-size: $font-size-sm;
+        color: $color-text-primary;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+}

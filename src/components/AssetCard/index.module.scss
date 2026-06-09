@@ -1,0 +1,96 @@
+@use '@/styles/variables.scss' as *;
+
+.assetCard {
+  display: flex;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+    box-shadow: $shadow-card-hover;
+  }
+
+  .assetImage {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: $radius-md;
+    background: linear-gradient(135deg, #f0f5ff 0%, #e6efff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: $spacing-lg;
+    flex-shrink: 0;
+
+    .assetIcon {
+      font-size: 56rpx;
+    }
+  }
+
+  .assetContent {
+    flex: 1;
+    min-width: 0;
+
+    .assetHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: $spacing-sm;
+
+      .assetName {
+        flex: 1;
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        margin-right: $spacing-sm;
+        @include text-ellipsis;
+      }
+    }
+
+    .assetNo {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+      margin-bottom: $spacing-sm;
+    }
+
+    .assetInfo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-md;
+      margin-bottom: $spacing-sm;
+
+      .infoItem {
+        font-size: $font-size-xs;
+        color: $color-text-secondary;
+        display: flex;
+        align-items: center;
+        gap: 4rpx;
+
+        .infoIcon {
+          font-size: $font-size-sm;
+        }
+      }
+    }
+
+    .assetLocation {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+      display: flex;
+      align-items: center;
+      gap: 4rpx;
+
+      .locationIcon {
+        font-size: $font-size-sm;
+      }
+    }
+  }
+
+  .checkStatus {
+    position: absolute;
+    top: $spacing-lg;
+    right: $spacing-lg;
+  }
+}

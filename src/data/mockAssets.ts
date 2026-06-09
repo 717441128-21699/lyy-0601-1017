@@ -1,0 +1,260 @@
+import { Asset } from '@/types';
+
+export const mockAssets: Asset[] = [
+  {
+    id: 'asset-001',
+    assetNo: 'IT-2023-0001',
+    name: 'MacBook Pro 14寸',
+    category: '电子设备',
+    brand: 'Apple',
+    model: 'MacBook Pro M2',
+    purchaseDate: '2023-03-15',
+    price: 14999,
+    department: '技术研发部',
+    roomId: 'room-001',
+    roomName: '研发1室',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2023-0001',
+    status: 'normal',
+    checkStatus: 'normal',
+    checkedAt: '2026-06-05 10:30:00',
+    checker: '张三'
+  },
+  {
+    id: 'asset-002',
+    assetNo: 'IT-2023-0002',
+    name: 'Dell显示器27寸',
+    category: '电子设备',
+    brand: 'Dell',
+    model: 'U2723QE',
+    purchaseDate: '2023-04-20',
+    price: 3299,
+    department: '技术研发部',
+    roomId: 'room-001',
+    roomName: '研发1室',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2023-0002',
+    status: 'normal',
+    checkStatus: 'idle',
+    checkRemark: '显示器外观完好，使用频率较低',
+    checkedAt: '2026-06-05 10:35:00',
+    checker: '张三'
+  },
+  {
+    id: 'asset-003',
+    assetNo: 'IT-2023-0003',
+    name: '机械键盘',
+    category: '电子设备',
+    brand: 'Logitech',
+    model: 'G915 TKL',
+    purchaseDate: '2023-05-10',
+    price: 1299,
+    department: '技术研发部',
+    roomId: 'room-001',
+    roomName: '研发1室',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2023-0003',
+    status: 'normal',
+    checkStatus: 'normal',
+    checkedAt: '2026-06-05 10:40:00',
+    checker: '张三'
+  },
+  {
+    id: 'asset-004',
+    assetNo: 'IT-2022-0156',
+    name: 'ThinkPad X1 Carbon',
+    category: '电子设备',
+    brand: 'Lenovo',
+    model: 'X1 Carbon Gen 10',
+    purchaseDate: '2022-08-01',
+    price: 12999,
+    department: '技术研发部',
+    roomId: 'room-002',
+    roomName: '研发2室',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2022-0156',
+    status: 'normal',
+    checkStatus: 'mismatch',
+    checkRemark: '实际位置在研发1室，与系统登记位置不符',
+    checkPhotos: ['https://picsum.photos/id/1/300/300'],
+    checkedAt: '2026-06-06 14:20:00',
+    checker: '李四'
+  },
+  {
+    id: 'asset-005',
+    assetNo: 'IT-2022-0157',
+    name: '华为MateBook X Pro',
+    category: '电子设备',
+    brand: '华为',
+    model: 'MateBook X Pro 2022',
+    purchaseDate: '2022-09-15',
+    price: 11999,
+    department: '技术研发部',
+    roomId: 'room-002',
+    roomName: '研发2室',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2022-0157',
+    status: 'normal',
+    checkStatus: 'lost',
+    checkRemark: '多次寻找未果，疑似丢失',
+    checkedAt: '2026-06-06 14:30:00',
+    checker: '李四'
+  },
+  {
+    id: 'asset-006',
+    assetNo: 'IT-2022-0158',
+    name: 'Dell服务器',
+    category: '服务器设备',
+    brand: 'Dell',
+    model: 'PowerEdge R750',
+    purchaseDate: '2022-06-01',
+    price: 35000,
+    department: '技术研发部',
+    roomId: 'room-003',
+    roomName: '服务器机房',
+    floor: '5F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2022-0158',
+    status: 'normal',
+    checkStatus: 'normal',
+    checkedAt: '2026-06-07 09:15:00',
+    checker: '王五'
+  },
+  {
+    id: 'asset-007',
+    assetNo: 'IT-2022-0159',
+    name: '思科交换机',
+    category: '网络设备',
+    brand: 'Cisco',
+    model: 'Catalyst 9300',
+    purchaseDate: '2022-06-10',
+    price: 28000,
+    department: '技术研发部',
+    roomId: 'room-003',
+    roomName: '服务器机房',
+    floor: '5F',
+    building: 'A栋',
+    qrCode: 'QR-IT-2022-0159',
+    status: 'normal',
+    checkStatus: 'unchecked'
+  },
+  {
+    id: 'asset-008',
+    assetNo: 'OF-2021-0567',
+    name: '投影仪',
+    category: '办公设备',
+    brand: 'Epson',
+    model: 'CB-FH52',
+    purchaseDate: '2021-11-20',
+    price: 5999,
+    department: '技术研发部',
+    roomId: 'room-004',
+    roomName: '会议室A',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-OF-2021-0567',
+    status: 'normal',
+    checkStatus: 'unchecked'
+  },
+  {
+    id: 'asset-009',
+    assetNo: 'OF-2021-0568',
+    name: '会议桌',
+    category: '办公家具',
+    brand: '震旦',
+    model: '现代简约会议桌',
+    purchaseDate: '2021-10-15',
+    price: 8500,
+    department: '技术研发部',
+    roomId: 'room-004',
+    roomName: '会议室A',
+    floor: '3F',
+    building: 'A栋',
+    qrCode: 'QR-OF-2021-0568',
+    status: 'normal',
+    checkStatus: 'normal',
+    checkedAt: '2026-06-08 11:00:00',
+    checker: '赵六'
+  },
+  {
+    id: 'asset-010',
+    assetNo: 'IT-2023-0089',
+    name: 'iPhone 14 Pro',
+    category: '电子设备',
+    brand: 'Apple',
+    model: 'iPhone 14 Pro 256G',
+    purchaseDate: '2023-02-20',
+    price: 8999,
+    department: '市场部',
+    roomId: 'room-011',
+    roomName: '市场办公区',
+    floor: '5F',
+    building: 'B栋',
+    qrCode: 'QR-IT-2023-0089',
+    status: 'normal',
+    checkStatus: 'unchecked'
+  },
+  {
+    id: 'asset-011',
+    assetNo: 'IT-2023-0090',
+    name: 'iPad Pro 12.9寸',
+    category: '电子设备',
+    brand: 'Apple',
+    model: 'iPad Pro M2',
+    purchaseDate: '2023-03-10',
+    price: 9299,
+    department: '市场部',
+    roomId: 'room-012',
+    roomName: '创意工作室',
+    floor: '5F',
+    building: 'B栋',
+    qrCode: 'QR-IT-2023-0090',
+    status: 'normal',
+    checkStatus: 'unchecked'
+  },
+  {
+    id: 'asset-012',
+    assetNo: 'IT-2023-0091',
+    name: 'Canon专业相机',
+    category: '数码设备',
+    brand: 'Canon',
+    model: 'EOS R6 Mark II',
+    purchaseDate: '2023-04-05',
+    price: 16800,
+    department: '市场部',
+    roomId: 'room-012',
+    roomName: '创意工作室',
+    floor: '5F',
+    building: 'B栋',
+    qrCode: 'QR-IT-2023-0091',
+    status: 'normal',
+    checkStatus: 'unchecked'
+  }
+];
+
+export const getAssetsByRoom = (roomId: string): Asset[] => {
+  return mockAssets.filter(asset => asset.roomId === roomId);
+};
+
+export const getAssetByNo = (assetNo: string): Asset | undefined => {
+  return mockAssets.find(asset => asset.assetNo === assetNo || asset.qrCode === assetNo);
+};
+
+export const getAssetById = (id: string): Asset | undefined => {
+  return mockAssets.find(asset => asset.id === id);
+};
+
+export const searchAssets = (keyword: string): Asset[] => {
+  const lowerKeyword = keyword.toLowerCase();
+  return mockAssets.filter(asset =>
+    asset.assetNo.toLowerCase().includes(lowerKeyword) ||
+    asset.name.toLowerCase().includes(lowerKeyword) ||
+    asset.brand.toLowerCase().includes(lowerKeyword) ||
+    asset.model.toLowerCase().includes(lowerKeyword)
+  );
+};
