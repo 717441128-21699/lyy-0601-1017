@@ -1,19 +1,24 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
 import Taro, { useRouter, useDidShow } from '@tarojs/taro';
-import { HistoryInventory } from '@/types';
+import { HistoryInventory, Asset } from '@/types';
 import StatusTag from '@/components/StatusTag';
 import ProgressBar from '@/components/ProgressBar';
+import EmptyState from '@/components/EmptyState';
 import { useInventoryStore } from '@/store';
+import { mockAssets } from '@/data/mockAssets';
 import styles from './index.module.scss';
 
 const SubmitResultPage: React.FC = () => {
   const router = useRouter();
   const historyId = router.params.historyId as string;
+  const [showReviewList, setShowReviewList] = useState(false);
   
   const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
   const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
   const getDraftWithLocal = useInventoryStore(state => state.getDraftWithLocal);
+  const getAssetsByBatchWithState = useInventoryStore(state => state.getAssetsByBatchWithState);
+  const getTaskWithState = useInventoryStore(state => state.getTaskWithState);
   const refresh = useInventoryStore(state => state.refresh);
 
   const history = useMemo(() => {
@@ -25,6 +30,42 @@ const SubmitResultPage: React.FC = () => {
   const draftCount = useMemo(() => {
     return getDraftWithLocal().length;
   }, [getDraftWithLocal, refreshTrigger]);
+
+  const batchAssets = useMemo(() => {
+    if (!history) return [];
+    
+    const assets = getAssetsByBatchWithState(history.batchNo);
+    if (assets.length > 0) {
+      return assets;
+    }
+    
+    if (history?.taskId) {
+      const task = getTaskWithState(history.taskId);
+      if (task?.rooms) {
+        const roomIds = task.rooms.map(r => r.id);
+        return mockAssets.filter(a => roomIds.includes(a.roomId));
+      }
+    }
+    
+    return [];
+  }, [history, getAssetsByBatchWithState, getTaskWithState]);
+
+  const uncheckedAssets = useMemo(() => {
+    return batchAssets.filter(a => !a.checkStatus || a.checkStatus === 'unchecked');
+  }, [batchAssets]);
+
+  const uncoveredRooms = useMemo(() => {
+    if (!history?.rooms) return [];
+    return history.rooms.filter(room => 
+      room.checkedAssets === 0 || (room.totalAssets > 0 && room.checkedAssets < room.totalAssets)
+    );
+  }, [history]);
+
+  const cleanedDraftCount = useMemo(() => {
+    if (!history) return 0;
+    const totalExpected = history.normalAssets + history.exceptionAssets;
+    return Math.max(0, totalExpected - batchAssets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length);
+  }, [history, batchAssets]);
 
   useDidShow(() => {
     refresh();
@@ -44,6 +85,24 @@ const SubmitResultPage: React.FC = () => {
 
   const handleBackToMine = () => {
     Taro.switchTab({ url: '/pages/mine/index' });
+  };
+
+  const toggleReviewList = () => {
+    setShowReviewList(!showReviewList);
+  };
+
+  const handleViewUncoveredRoom = (roomId: string) => {
+    if (history?.taskId) {
+      Taro.navigateTo({
+        url: `/pages/room-assets/index?roomId=${roomId}&taskId=${history.taskId}`
+      });
+    }
+  };
+
+  const handleViewAssetDetail = (assetId: string) => {
+    Taro.navigateTo({
+      url: `/pages/asset-detail/index?id=${assetId}`
+    });
   };
 
   if (!history) {
@@ -184,31 +243,101 @@ const SubmitResultPage: React.FC = () => {
         </View>
 
         <View className={styles.cleanupCard}>
-          <View className={styles.cleanupHeader}>
+          <View 
+            className={styles.cleanupHeader}
+            onClick={toggleReviewList}
+          >
             <Text className={styles.cleanupTitle}>
-              <Text className={styles.cleanupIcon}>🧹</Text>
-              暂存记录清理
+              <Text className={styles.cleanupIcon}>📋</Text>
+              复核清单
+            </Text>
+            <Text className={styles.cleanupArrow}>
+              {showReviewList ? '▲' : '▼'}
             </Text>
           </View>
-          <View className={styles.cleanupContent}>
-            <View className={styles.cleanupItem}>
-              <Text className={styles.cleanupStatus}>
-                {draftCount === 0 ? '✅' : '⚠️'}
-              </Text>
-              <View style={{ flex: 1 }}>
-                <Text className={styles.cleanupText}>
-                  {draftCount === 0 
-                    ? '所有暂存记录已清理完成' 
-                    : `还有 ${draftCount} 条暂存记录未清理`}
+          
+          {showReviewList && (
+            <View className={styles.cleanupContent}>
+              <View className={styles.cleanupItem}>
+                <Text className={styles.cleanupStatus}>
+                  {cleanedDraftCount > 0 ? '✅' : 'ℹ️'}
                 </Text>
-                <Text className={styles.cleanupSubtext}>
-                  {draftCount === 0 
-                    ? '本次盘点的暂存数据已全部提交' 
-                    : '请确认是否还有未提交的记录'}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text className={styles.cleanupText}>
+                    暂存记录清理：{cleanedDraftCount} 条已提交
+                  </Text>
+                  <Text className={styles.cleanupSubtext}>
+                    {draftCount === 0 
+                      ? '所有暂存数据已清理完成' 
+                      : `还有 ${draftCount} 条暂存记录未清理`}
+                  </Text>
+                </View>
               </View>
+
+              {uncoveredRooms.length > 0 && (
+                <View className={styles.cleanupItem}>
+                  <Text className={styles.cleanupStatus}>⚠️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text className={styles.cleanupText}>
+                      未完全覆盖的房间：{uncoveredRooms.length} 个
+                    </Text>
+                    <View className={styles.uncoveredList}>
+                      {uncoveredRooms.map(room => (
+                        <Text 
+                          key={room.id}
+                          className={styles.uncoveredTag}
+                          onClick={() => handleViewUncoveredRoom(room.id)}
+                        >
+                          {room.name} ({room.checkedAssets}/{room.totalAssets})
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {uncheckedAssets.length > 0 && (
+                <View className={styles.cleanupItem}>
+                  <Text className={styles.cleanupStatus}>⚠️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text className={styles.cleanupText}>
+                      未核对的资产：{uncheckedAssets.length} 台
+                    </Text>
+                    <View className={styles.uncoveredList}>
+                      {uncheckedAssets.slice(0, 5).map(asset => (
+                        <Text 
+                          key={asset.id}
+                          className={styles.uncoveredTag}
+                          onClick={() => handleViewAssetDetail(asset.id)}
+                        >
+                          {asset.name} ({asset.assetNo})
+                        </Text>
+                      ))}
+                      {uncheckedAssets.length > 5 && (
+                        <Text className={styles.moreTag}>
+                          还有 {uncheckedAssets.length - 5} 台...
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {uncoveredRooms.length === 0 && uncheckedAssets.length === 0 && (
+                <View className={styles.cleanupItem}>
+                  <Text className={styles.cleanupStatus}>🎉</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text className={styles.cleanupText}>
+                      复核完成，所有资产已覆盖
+                    </Text>
+                    <Text className={styles.cleanupSubtext}>
+                      本次盘点的 {batchAssets.length} 台资产全部核对完成
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
-          </View>
+          )}
         </View>
 
         <View className={styles.actionSection}>

@@ -178,10 +178,33 @@
   border-radius: 16rpx;
 }
 
+.cleanupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cleanupArrow {
+  font-size: 24rpx;
+  color: #86909C;
+  transition: transform 0.3s ease;
+}
+
+.cleanupContent {
+  padding-top: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
 .cleanupItem {
   display: flex;
   align-items: flex-start;
   gap: 16rpx;
+  padding: 20rpx;
+  background: #f7f8fa;
+  border-radius: 16rpx;
 }
 
 .cleanupStatus {
@@ -200,6 +223,30 @@
 .cleanupSubtext {
   font-size: 24rpx;
   color: #86909C;
+}
+
+.uncoveredList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.uncoveredTag {
+  font-size: 22rpx;
+  padding: 8rpx 16rpx;
+  background: rgba(245, 63, 63, 0.1);
+  color: #F53F3F;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.moreTag {
+  font-size: 22rpx;
+  padding: 8rpx 16rpx;
+  background: rgba(134, 144, 156, 0.1);
+  color: #86909C;
+  border-radius: 8rpx;
 }
 
 .actionSection {

@@ -1,23 +1,31 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
 import Taro, { useRouter, useDidShow } from '@tarojs/taro';
-import { HistoryInventory, ExceptionRecord } from '@/types';
+import { HistoryInventory, ExceptionRecord, Asset } from '@/types';
 import StatusTag from '@/components/StatusTag';
 import ProgressBar from '@/components/ProgressBar';
 import EmptyState from '@/components/EmptyState';
 import { useInventoryStore } from '@/store';
+import { mockTasks } from '@/data/mockTasks';
+import { mockAssets } from '@/data/mockAssets';
 import styles from './index.module.scss';
+
+type TabType = 'overview' | 'review';
 
 const HistoryDetailPage: React.FC = () => {
   const router = useRouter();
   const historyId = router.params.id as string;
   const batchNo = router.params.batchNo as string;
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
   
   const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
   const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
   const getHistoryByBatchNo = useInventoryStore(state => state.getHistoryByBatchNo);
   const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
+  const getAssetsByBatchWithState = useInventoryStore(state => state.getAssetsByBatchWithState);
+  const getTaskWithState = useInventoryStore(state => state.getTaskWithState);
   const refresh = useInventoryStore(state => state.refresh);
 
   const history = useMemo(() => {
@@ -38,9 +46,102 @@ const HistoryDetailPage: React.FC = () => {
   }, [history, getExceptionsWithLocal, refreshTrigger]);
 
   const rooms = useMemo(() => {
-    if (!history?.rooms) return [];
-    return history.rooms;
-  }, [history]);
+    if (history?.rooms && history.rooms.length > 0) {
+      return history.rooms;
+    }
+    
+    if (history?.taskId) {
+      const task = getTaskWithState(history.taskId);
+      if (task?.rooms) {
+        return task.rooms.map(room => ({
+          ...room,
+          checkedAssets: room.checkedAssets || 0,
+          totalAssets: room.totalAssets || 0
+        }));
+      }
+    }
+    
+    if (history) {
+      const mockTask = mockTasks.find(t => t.batchNo === history.batchNo);
+      if (mockTask?.rooms) {
+        return mockTask.rooms.map(room => ({
+          ...room,
+          checkedAssets: room.checkedAssets || 0,
+          totalAssets: room.totalAssets || 0
+        }));
+      }
+    }
+    
+    return [];
+  }, [history, getTaskWithState]);
+
+  const batchAssets = useMemo(() => {
+    if (!history) return [];
+    
+    const assets = getAssetsByBatchWithState(history.batchNo);
+    if (assets.length > 0) {
+      return assets;
+    }
+    
+    if (history?.taskId) {
+      const task = getTaskWithState(history.taskId);
+      if (task?.rooms) {
+        const roomIds = task.rooms.map(r => r.id);
+        return mockAssets.filter(a => roomIds.includes(a.roomId));
+      }
+    }
+    
+    if (history) {
+      const mockTask = mockTasks.find(t => t.batchNo === history.batchNo);
+      if (mockTask?.rooms) {
+        const roomIds = mockTask.rooms.map(r => r.id);
+        return mockAssets.filter(a => roomIds.includes(a.roomId));
+      }
+    }
+    
+    return [];
+  }, [history, getAssetsByBatchWithState, getTaskWithState]);
+
+  const assetsByRoom = useMemo(() => {
+    const grouped: Record<string, Asset[]> = {};
+    batchAssets.forEach(asset => {
+      if (!grouped[asset.roomId]) {
+        grouped[asset.roomId] = [];
+      }
+      grouped[asset.roomId].push(asset);
+    });
+    return grouped;
+  }, [batchAssets]);
+
+  const toggleRoomExpand = (roomId: string) => {
+    const newExpanded = new Set(expandedRooms);
+    if (newExpanded.has(roomId)) {
+      newExpanded.delete(roomId);
+    } else {
+      newExpanded.add(roomId);
+    }
+    setExpandedRooms(newExpanded);
+  };
+
+  const handleViewAssetDetail = (assetId: string) => {
+    Taro.navigateTo({
+      url: `/pages/asset-detail/index?id=${assetId}`
+    });
+  };
+
+  const handleViewPhotos = (asset: Asset) => {
+    if (asset.photos && asset.photos.length > 0) {
+      Taro.previewImage({
+        urls: asset.photos,
+        current: asset.photos[0]
+      });
+    } else {
+      Taro.showToast({
+        title: '暂无照片',
+        icon: 'none'
+      });
+    }
+  };
 
   useDidShow(() => {
     refresh();
@@ -82,6 +183,9 @@ const HistoryDetailPage: React.FC = () => {
   };
 
   const handleViewExceptions = () => {
+    if (history) {
+      Taro.setStorageSync('selectedBatchNo', history.batchNo);
+    }
     Taro.switchTab({
       url: '/pages/exception/index'
     });
@@ -150,6 +254,11 @@ const HistoryDetailPage: React.FC = () => {
     Taro.switchTab({ url: '/pages/tasks/index' });
   };
 
+  const tabs = [
+    { key: 'overview' as TabType, label: '概览', icon: '📊' },
+    { key: 'review' as TabType, label: '批次复核', icon: '✅' }
+  ];
+
   return (
     <View className={styles.historyDetailPage}>
       <ScrollView scrollY className={styles.content}>
@@ -192,6 +301,21 @@ const HistoryDetailPage: React.FC = () => {
           </View>
         </View>
 
+        <View className={styles.tabBar}>
+          {tabs.map(tab => (
+            <View
+              key={tab.key}
+              className={[styles.tabItem, activeTab === tab.key && styles.tabActive].join(' ')}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              <Text className={styles.tabIcon}>{tab.icon}</Text>
+              <Text className={styles.tabLabel}>{tab.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {activeTab === 'overview' && (
+          <View className={styles.tabContent}>
         <View className={styles.section}>
           <View className={styles.sectionHeader}>
             <Text className={styles.sectionTitle}>
@@ -344,6 +468,177 @@ const HistoryDetailPage: React.FC = () => {
             <Text className={styles.actionText}>异常详情</Text>
           </View>
         </View>
+          </View>
+        )}
+
+        {activeTab === 'review' && (
+          <View className={styles.tabContent}>
+            <View className={styles.section}>
+              <View className={styles.sectionHeader}>
+                <Text className={styles.sectionTitle}>
+                  <Text className={styles.titleIcon}>✅</Text>
+                  批次复核视图
+                </Text>
+                <Text className={styles.sectionSubtitle}>
+                  共 {batchAssets.length} 台资产，{rooms.length} 个房间
+                </Text>
+              </View>
+
+              {batchAssets.length > 0 ? (
+                <View className={styles.reviewList}>
+                  {rooms.map(room => {
+                    const roomAssets = assetsByRoom[room.id] || [];
+                    const isExpanded = expandedRooms.has(room.id);
+                    const roomChecked = roomAssets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length;
+                    
+                    return (
+                      <View key={room.id} className={styles.reviewRoomSection}>
+                        <View 
+                          className={styles.reviewRoomHeader}
+                          onClick={() => toggleRoomExpand(room.id)}
+                        >
+                          <View style={{ display: 'flex', alignItems: 'center', gap: '16rpx', flex: 1 }}>
+                            <Text className={styles.roomIcon}>🏢</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text className={styles.reviewRoomName}>{room.name}</Text>
+                              <Text className={styles.reviewRoomMeta}>
+                                {room.checkedAssets || roomChecked}/{room.totalAssets || roomAssets.length} 台 · 
+                                {room.building} {room.floor}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text className={[styles.expandIcon, isExpanded && styles.expanded].join(' ')}>
+                            ▼
+                          </Text>
+                        </View>
+
+                        {isExpanded && (
+                          <View className={styles.reviewAssetList}>
+                            {roomAssets.length > 0 ? (
+                              roomAssets.map(asset => (
+                                <View 
+                                  key={asset.id} 
+                                  className={styles.reviewAssetItem}
+                                  onClick={() => handleViewAssetDetail(asset.id)}
+                                >
+                                  <View className={styles.reviewAssetHeader}>
+                                    <Text className={styles.reviewAssetName}>{asset.name}</Text>
+                                    <StatusTag 
+                                      status={asset.checkStatus || 'unchecked'} 
+                                      size="small"
+                                    />
+                                  </View>
+                                  <View className={styles.reviewAssetMeta}>
+                                    <View className={styles.metaItem}>
+                                      <Text>📋</Text>
+                                      <Text>{asset.assetNo}</Text>
+                                    </View>
+                                    <View className={styles.metaItem}>
+                                      <Text>🏷️</Text>
+                                      <Text>{asset.category}</Text>
+                                    </View>
+                                    {asset.checkTime && (
+                                      <View className={styles.metaItem}>
+                                        <Text>📅</Text>
+                                        <Text>{asset.checkTime}</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                  <View className={styles.reviewAssetActions}>
+                                    {asset.remark && (
+                                      <View className={styles.remarkBadge} onClick={(e) => {
+                                        e.stopPropagation();
+                                        Taro.showModal({
+                                          title: '盘点备注',
+                                          content: asset.remark,
+                                          showCancel: false
+                                        });
+                                      }}>
+                                        💬 有备注
+                                      </View>
+                                    )}
+                                    {asset.photos && asset.photos.length > 0 && (
+                                      <View 
+                                        className={styles.photoBadge} 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewPhotos(asset);
+                                        }}
+                                      >
+                                        📷 {asset.photos.length}张
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
+                              ))
+                            ) : (
+                              <EmptyState
+                                icon="📭"
+                                text="该房间暂无资产"
+                                size="small"
+                              />
+                            )}
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <EmptyState
+                  icon="📋"
+                  text="暂无复核数据"
+                  subText="该批次暂无资产明细数据，可查看概览页的汇总信息"
+                />
+              )}
+            </View>
+
+            <View className={styles.summaryCard}>
+              <Text className={styles.summaryTitle}>
+                <Text className={styles.summaryIcon}>📈</Text>
+                复核汇总
+              </Text>
+              <View className={styles.summaryGrid}>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#00B42A' }}>
+                    {batchAssets.filter(a => a.checkStatus === 'normal').length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>正常</Text>
+                </View>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#F53F3F' }}>
+                    {batchAssets.filter(a => a.checkStatus === 'lost').length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>丢失</Text>
+                </View>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#FF7D00' }}>
+                    {batchAssets.filter(a => a.checkStatus === 'idle').length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>闲置</Text>
+                </View>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#F7BA1E' }}>
+                    {batchAssets.filter(a => a.checkStatus === 'mismatch').length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>位置不符</Text>
+                </View>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#86909C' }}>
+                    {batchAssets.filter(a => !a.checkStatus || a.checkStatus === 'unchecked').length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>未核对</Text>
+                </View>
+                <View className={styles.summaryItem}>
+                  <Text className={styles.summaryValue} style={{ color: '#722ED1' }}>
+                    {batchAssets.filter(a => a.remark || (a.photos && a.photos.length > 0)).length}
+                  </Text>
+                  <Text className={styles.summaryLabel}>有凭证</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

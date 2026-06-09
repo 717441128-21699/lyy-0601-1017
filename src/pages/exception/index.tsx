@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Button, usePullDownRefresh } from '@tarojs/components';
+import { View, Text, ScrollView, Button, Textarea, usePullDownRefresh } from '@tarojs/components';
 import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { ExceptionRecord, AssetStatus } from '@/types';
 import ExceptionCard from '@/components/ExceptionCard';
 import EmptyState from '@/components/EmptyState';
+import StatusTag from '@/components/StatusTag';
 import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
@@ -17,10 +18,16 @@ const ExceptionPage: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState<string>('all');
   const [showBatchSelector, setShowBatchSelector] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedException, setSelectedException] = useState<ExceptionRecord | null>(null);
+  const [showProcessModal, setShowProcessModal] = useState(false);
+  const [processRemark, setProcessRemark] = useState('');
+  const [processStatus, setProcessStatus] = useState<'pending' | 'processing' | 'resolved'>('pending');
 
   const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
   const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
   const getAllBatches = useInventoryStore(state => state.getAllBatches);
+  const updateExceptionStatus = useInventoryStore(state => state.updateExceptionStatus);
+  const addExceptionRemark = useInventoryStore(state => state.addExceptionRemark);
   const refresh = useInventoryStore(state => state.refresh);
 
   const allExceptions = useMemo(() => {
@@ -58,6 +65,15 @@ const ExceptionPage: React.FC = () => {
 
   useDidShow(() => {
     refresh();
+    const selectedBatchNo = Taro.getStorageSync('selectedBatchNo') as string;
+    if (selectedBatchNo && selectedBatchNo !== batchFilter) {
+      const batchExists = batchOptions.some(b => b.batchNo === selectedBatchNo);
+      if (batchExists) {
+        setBatchFilter(selectedBatchNo);
+        console.log('[ExceptionPage] 从存储中恢复选中批次:', selectedBatchNo);
+      }
+    }
+    Taro.removeStorageSync('selectedBatchNo');
   });
 
   usePullDownRefresh(() => {
@@ -138,13 +154,41 @@ const ExceptionPage: React.FC = () => {
   };
 
   const handleExceptionClick = (exception: ExceptionRecord) => {
-    Taro.showModal({
-      title: exception.assetName,
-      content: `资产编号：${exception.assetNo}\n异常类型：${exception.type === 'idle' ? '闲置' : exception.type === 'lost' ? '丢失' : '位置不符'}\n\n异常描述：\n${exception.description}\n\n处理状态：${exception.status === 'pending' ? '待处理' : exception.status === 'processing' ? '处理中' : '已解决'}\n${exception.remark ? `\n处理备注：\n${exception.remark}` : ''}`,
-      showCancel: false,
-      confirmText: '关闭',
-      confirmColor: '#165dff'
-    });
+    setSelectedException(exception);
+    setProcessStatus(exception.status as 'pending' | 'processing' | 'resolved');
+    setProcessRemark('');
+    setShowProcessModal(true);
+  };
+
+  const handleCloseProcessModal = () => {
+    setShowProcessModal(false);
+    setSelectedException(null);
+    setProcessRemark('');
+  };
+
+  const handleSubmitProcess = () => {
+    if (!selectedException) return;
+
+    let success = false;
+    
+    if (processRemark.trim()) {
+      success = addExceptionRemark(selectedException.id, processRemark.trim());
+    }
+    
+    if (processStatus !== selectedException.status) {
+      success = updateExceptionStatus(selectedException.id, processStatus, processRemark.trim() || undefined);
+    }
+
+    if (success || processRemark.trim()) {
+      Taro.showToast({
+        title: '处理成功',
+        icon: 'success',
+        duration: 1500
+      });
+      console.log('[ExceptionPage] 异常处理完成', selectedException.id, processStatus, processRemark);
+    }
+    
+    handleCloseProcessModal();
   };
 
   const summary = {
@@ -297,6 +341,133 @@ const ExceptionPage: React.FC = () => {
           />
         )}
       </ScrollView>
+
+      {showProcessModal && selectedException && (
+        <View className={styles.modalOverlay} onClick={handleCloseProcessModal}>
+          <View className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <View className={styles.modalHeader}>
+              <Text className={styles.modalTitle}>
+                <Text className={styles.modalIcon}>⚠️</Text>
+                异常处理
+              </Text>
+              <Text className={styles.modalClose} onClick={handleCloseProcessModal}>
+                ✕
+              </Text>
+            </View>
+
+            <ScrollView scrollY className={styles.modalBody}>
+              <View className={styles.exceptionInfo}>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>资产名称</Text>
+                  <Text className={styles.infoValue}>{selectedException.assetName}</Text>
+                </View>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>资产编号</Text>
+                  <Text className={styles.infoValue}>{selectedException.assetNo}</Text>
+                </View>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>异常类型</Text>
+                  <StatusTag status={selectedException.type === 'lost' ? 'lost' : selectedException.type as any} />
+                </View>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>所在房间</Text>
+                  <Text className={styles.infoValue}>{selectedException.roomName}</Text>
+                </View>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>上报人</Text>
+                  <Text className={styles.infoValue}>{selectedException.reportedBy || selectedException.reporter}</Text>
+                </View>
+                <View className={styles.infoRow}>
+                  <Text className={styles.infoLabel}>上报时间</Text>
+                  <Text className={styles.infoValue}>{selectedException.reportedAt || selectedException.createdAt}</Text>
+                </View>
+                {selectedException.description && (
+                  <View className={styles.infoRow} style={{ alignItems: 'flex-start' }}>
+                    <Text className={styles.infoLabel}>异常描述</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text className={styles.infoValue} style={{ whiteSpace: 'pre-wrap' }}>
+                        {selectedException.description}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {selectedException.remark && (
+                  <View className={styles.infoRow} style={{ alignItems: 'flex-start' }}>
+                    <Text className={styles.infoLabel}>历史备注</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text className={styles.infoValue} style={{ whiteSpace: 'pre-wrap', color: '#FF7D00' }}>
+                        {selectedException.remark}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <View className={styles.processSection}>
+                <Text className={styles.processTitle}>处理状态</Text>
+                <View className={styles.statusOptions}>
+                  {[
+                    { key: 'pending', label: '待处理', color: '#F53F3F' },
+                    { key: 'processing', label: '处理中', color: '#FF7D00' },
+                    { key: 'resolved', label: '已解决', color: '#00B42A' }
+                  ].map(option => (
+                    <View
+                      key={option.key}
+                      className={[
+                        styles.statusOption,
+                        processStatus === option.key && styles.statusOptionActive
+                      ].join(' ')}
+                      style={{
+                        borderColor: processStatus === option.key ? option.color : '#E5E6EB'
+                      }}
+                      onClick={() => setProcessStatus(option.key as any)}
+                    >
+                      <View
+                        className={styles.statusDot}
+                        style={{ background: option.color }}
+                      />
+                      <Text
+                        className={styles.statusOptionText}
+                        style={{
+                          color: processStatus === option.key ? option.color : '#4E5969'
+                        }}
+                      >
+                        {option.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              <View className={styles.remarkSection}>
+                <Text className={styles.remarkTitle}>处理意见</Text>
+                <Textarea
+                  className={styles.remarkInput}
+                  placeholder="请输入处理意见（选填）"
+                  value={processRemark}
+                  onInput={(e) => setProcessRemark(e.detail.value)}
+                  maxlength={500}
+                />
+              </View>
+            </ScrollView>
+
+            <View className={styles.modalFooter}>
+              <Button
+                className={styles.cancelBtn}
+                onClick={handleCloseProcessModal}
+              >
+                取消
+              </Button>
+              <Button
+                className={styles.confirmBtn}
+                onClick={handleSubmitProcess}
+              >
+                确认处理
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

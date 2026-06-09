@@ -32,6 +32,10 @@ interface InventoryStore {
   getAssetWithCheckState: (assetId: string) => Asset | null;
   getAssetsByRoomWithState: (roomId: string) => Asset[];
   getRoomCheckProgress: (roomId: string, taskId: string) => { checked: number; total: number; progress: number };
+  updateExceptionStatus: (exceptionId: string, status: 'pending' | 'processing' | 'resolved', remark?: string) => boolean;
+  addExceptionRemark: (exceptionId: string, remark: string) => boolean;
+  getCheckRecordsByBatch: (batchNo: string) => CheckRecord[];
+  getAssetsByBatchWithState: (batchNo: string) => Asset[];
   getStatistics: () => {
     pendingTasks: number;
     ongoingTasks: number;
@@ -442,5 +446,106 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       uncheckedAssets,
       exceptionCount
     };
+  },
+
+  updateExceptionStatus: (exceptionId: string, status: 'pending' | 'processing' | 'resolved', remark?: string): boolean => {
+    const state = get();
+    const exceptionIndex = state.exceptions.findIndex(e => e.id === exceptionId);
+    
+    if (exceptionIndex === -1) {
+      console.log('[Store] 异常记录不存在', exceptionId);
+      return false;
+    }
+
+    const updatedExceptions = [...state.exceptions];
+    const updatedException = {
+      ...updatedExceptions[exceptionIndex],
+      status,
+      remark: remark || updatedExceptions[exceptionIndex].remark,
+      processedAt: new Date().toLocaleString()
+    };
+    updatedExceptions[exceptionIndex] = updatedException;
+
+    storage.saveExceptionRecord(updatedException);
+
+    set({
+      exceptions: updatedExceptions,
+      refreshTrigger: state.refreshTrigger + 1
+    });
+
+    console.log('[Store] 更新异常状态', exceptionId, status, remark);
+    return true;
+  },
+
+  addExceptionRemark: (exceptionId: string, remark: string): boolean => {
+    const state = get();
+    const exceptionIndex = state.exceptions.findIndex(e => e.id === exceptionId);
+    
+    if (exceptionIndex === -1) {
+      console.log('[Store] 异常记录不存在', exceptionId);
+      return false;
+    }
+
+    const updatedExceptions = [...state.exceptions];
+    const existingRemark = updatedExceptions[exceptionIndex].remark;
+    const newRemark = existingRemark 
+      ? `${existingRemark}\n\n[${new Date().toLocaleString()}] ${remark}`
+      : `[${new Date().toLocaleString()}] ${remark}`;
+
+    const updatedException = {
+      ...updatedExceptions[exceptionIndex],
+      remark: newRemark,
+      processedAt: new Date().toLocaleString()
+    };
+    updatedExceptions[exceptionIndex] = updatedException;
+
+    storage.saveExceptionRecord(updatedException);
+
+    set({
+      exceptions: updatedExceptions,
+      refreshTrigger: state.refreshTrigger + 1
+    });
+
+    console.log('[Store] 添加异常备注', exceptionId);
+    return true;
+  },
+
+  getCheckRecordsByBatch: (batchNo: string): CheckRecord[] => {
+    const state = get();
+    const allDrafts = storage.getDraftRecords();
+    const allRecords = [...allDrafts, ...state.draftRecords];
+    return allRecords.filter(r => r.batchNo === batchNo);
+  },
+
+  getAssetsByBatchWithState: (batchNo: string): Asset[] => {
+    const state = get();
+    const history = state.getHistoryByBatchNo(batchNo);
+    
+    if (!history || !history.taskId) {
+      return [];
+    }
+
+    const task = state.tasks.find(t => t.id === history.taskId);
+    if (!task || !task.rooms) {
+      return [];
+    }
+
+    const roomIds = task.rooms.map(r => r.id);
+    const batchAssets = state.assets.filter(a => roomIds.includes(a.roomId));
+
+    return batchAssets.map(asset => {
+      const checkedState = storage.getCheckedAsset(asset.id);
+      if (checkedState) {
+        return {
+          ...asset,
+          checkStatus: checkedState.status as AssetStatus,
+          checkTime: checkedState.checkTime,
+          checkedAt: checkedState.checkTime,
+          remark: checkedState.remark,
+          photos: checkedState.photos
+        };
+      }
+      return asset;
+    });
   }
 }));

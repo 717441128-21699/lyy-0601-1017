@@ -186,6 +186,208 @@
     }
   }
 
+  .tabBar {
+    display: flex;
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: 8rpx;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .tabItem {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8rpx;
+      padding: $spacing-md $spacing-sm;
+      border-radius: $radius-md;
+      transition: all 0.3s ease;
+
+      .tabIcon {
+        font-size: 32rpx;
+      }
+
+      .tabLabel {
+        font-size: $font-size-sm;
+        color: $color-text-tertiary;
+        font-weight: $font-weight-medium;
+      }
+
+      &.tabActive {
+        background: $color-primary;
+
+        .tabLabel {
+          color: $color-text-white;
+        }
+      }
+    }
+  }
+
+  .tabContent {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sectionSubtitle {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .reviewList {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .reviewRoomSection {
+    background: $color-bg-page;
+    border-radius: $radius-md;
+    overflow: hidden;
+
+    .reviewRoomHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: $spacing-md;
+      background: $color-bg-card;
+      border-bottom: 1rpx solid $color-border-light;
+
+      .reviewRoomName {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        display: block;
+        margin-bottom: 4rpx;
+      }
+
+      .reviewRoomMeta {
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+      }
+
+      .expandIcon {
+        font-size: 24rpx;
+        color: $color-text-tertiary;
+        transition: transform 0.3s ease;
+
+        &.expanded {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .reviewAssetList {
+      padding: $spacing-sm;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+
+    .reviewAssetItem {
+      background: $color-bg-card;
+      border-radius: $radius-sm;
+      padding: $spacing-md;
+      border: 1rpx solid $color-border-light;
+
+      .reviewAssetHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: $spacing-sm;
+
+        .reviewAssetName {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+        }
+      }
+
+      .reviewAssetMeta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-md;
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+        margin-bottom: $spacing-sm;
+
+        .metaItem {
+          display: flex;
+          align-items: center;
+          gap: 4rpx;
+        }
+      }
+
+      .reviewAssetActions {
+        display: flex;
+        gap: $spacing-sm;
+        flex-wrap: wrap;
+
+        .remarkBadge,
+        .photoBadge {
+          font-size: 22rpx;
+          padding: 6rpx 16rpx;
+          border-radius: $radius-sm;
+          background: rgba(22, 93, 255, 0.08);
+          color: $color-primary;
+          font-weight: $font-weight-medium;
+        }
+
+        .photoBadge {
+          background: rgba(114, 46, 209, 0.08);
+          color: #722ED1;
+        }
+      }
+    }
+  }
+
+  .summaryCard {
+    background: $color-bg-card;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-md;
+    box-shadow: $shadow-card;
+
+    .summaryTitle {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+      margin-bottom: $spacing-lg;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .summaryIcon {
+        font-size: 32rpx;
+      }
+    }
+
+    .summaryGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: $spacing-md;
+
+      .summaryItem {
+        text-align: center;
+        padding: $spacing-sm;
+        background: $color-bg-page;
+        border-radius: $radius-sm;
+
+        .summaryValue {
+          font-size: 36rpx;
+          font-weight: $font-weight-bold;
+          display: block;
+          margin-bottom: 4rpx;
+        }
+
+        .summaryLabel {
+          font-size: $font-size-xs;
+          color: $color-text-tertiary;
+        }
+      }
+    }
+  }
+
   .actionCard {
     background: linear-gradient(135deg, #f0f5ff 0%, #e6efff 100%);
     border-radius: $radius-lg;
