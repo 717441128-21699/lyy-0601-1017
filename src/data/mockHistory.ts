@@ -2,6 +2,27 @@ import { HistoryInventory, CheckRecord } from '@/types';
 
 export const mockHistory: HistoryInventory[] = [
   {
+    id: 'hist-005',
+    batchNo: 'PD-2026-Q2-003',
+    name: '2026年Q2财务部资产盘点',
+    quarter: 'Q2',
+    year: 2026,
+    department: '财务部',
+    totalAssets: 67,
+    normalAssets: 63,
+    exceptionAssets: 4,
+    lostAssets: 0,
+    idleAssets: 2,
+    mismatchAssets: 2,
+    completedAt: '2026-06-15 16:45:00',
+    checker: '王五',
+    taskId: 'task-003',
+    rooms: [
+      { id: 'room-009', name: '财务室', floor: '4F', building: 'B栋', totalAssets: 45, checkedAssets: 45 },
+      { id: 'room-010', name: '档案库房', floor: '4F', building: 'B栋', totalAssets: 22, checkedAssets: 22 }
+    ]
+  },
+  {
     id: 'hist-001',
     batchNo: 'PD-2026-Q1-001',
     name: '2026年Q1技术部资产盘点',

@@ -337,7 +337,42 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
   getHistoryByBatchNo: (batchNo: string): HistoryInventory | null => {
     const state = get();
-    return state.historyRecords.find(h => h.batchNo === batchNo) || null;
+    const existing = state.historyRecords.find(h => h.batchNo === batchNo);
+    if (existing) return existing;
+
+    const task = state.tasks.find(t => t.batchNo === batchNo && t.status === 'completed');
+    if (task) {
+      const batchExceptions = state.exceptions.filter(e => e.batchNo === batchNo);
+      const idle = batchExceptions.filter(e => e.type === 'idle').length;
+      const lost = batchExceptions.filter(e => e.type === 'lost').length;
+      const mismatch = batchExceptions.filter(e => e.type === 'mismatch').length;
+      const exceptionAssets = idle + lost + mismatch;
+      const normalAssets = task.checkedAssets - exceptionAssets;
+
+      const generatedHistory: HistoryInventory = {
+        id: `hist-gen-${batchNo}`,
+        batchNo: task.batchNo,
+        name: task.name,
+        quarter: task.quarter,
+        year: task.year,
+        department: task.department,
+        totalAssets: task.totalAssets,
+        normalAssets,
+        exceptionAssets,
+        lostAssets: lost,
+        idleAssets: idle,
+        mismatchAssets: mismatch,
+        completedAt: task.completedAt || new Date().toLocaleString(),
+        checker: '当前用户',
+        taskId: task.id,
+        rooms: task.rooms
+      };
+
+      console.log('[Store] 从任务信息生成历史记录', batchNo);
+      return generatedHistory;
+    }
+
+    return null;
   },
 
   getAllBatches: (): { batchNo: string; name: string; status: string }[] => {
@@ -521,31 +556,78 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const state = get();
     const history = state.getHistoryByBatchNo(batchNo);
     
-    if (!history || !history.taskId) {
+    if (!history) {
       return [];
     }
 
-    const task = state.tasks.find(t => t.id === history.taskId);
-    if (!task || !task.rooms) {
-      return [];
+    let task = history.taskId ? state.tasks.find(t => t.id === history.taskId) : null;
+    if (!task) {
+      task = state.tasks.find(t => t.batchNo === batchNo);
     }
 
-    const roomIds = task.rooms.map(r => r.id);
-    const batchAssets = state.assets.filter(a => roomIds.includes(a.roomId));
+    const batchExceptions = state.exceptions.filter(e => e.batchNo === batchNo);
+    const batchCheckRecords = state.getCheckRecordsByBatch(batchNo);
+    const localCheckedAssets = storage.getTaskCheckedAssets() || {};
+    const batchCheckedIds = Object.keys(localCheckedAssets).filter(
+      id => localCheckedAssets[id].batchNo === batchNo
+    );
+
+    let batchAssets: Asset[] = [];
+
+    if (task && task.rooms) {
+      const roomIds = task.rooms.map(r => r.id);
+      batchAssets = state.assets.filter(a => roomIds.includes(a.roomId));
+    } else {
+      const assetNosFromExceptions = batchExceptions.map(e => e.assetNo);
+      batchAssets = state.assets.filter(a => 
+        assetNosFromExceptions.includes(a.assetNo) ||
+        batchCheckRecords.some(r => r.assetId === a.id) ||
+        batchCheckedIds.includes(a.id)
+      );
+    }
 
     return batchAssets.map(asset => {
-      const checkedState = storage.getCheckedAsset(asset.id);
-      if (checkedState) {
-        return {
-          ...asset,
-          checkStatus: checkedState.status as AssetStatus,
-          checkTime: checkedState.checkTime,
-          checkedAt: checkedState.checkTime,
-          remark: checkedState.remark,
-          photos: checkedState.photos
-        };
+      let checkStatus: AssetStatus = asset.checkStatus || 'unchecked';
+      let checkTime: string | undefined = asset.checkTime;
+      let remark: string | undefined = asset.remark;
+      let photos: string[] | undefined = asset.photos;
+
+      const checkedState = localCheckedAssets[asset.id];
+      if (checkedState && checkedState.batchNo === batchNo) {
+        checkStatus = checkedState.status as AssetStatus;
+        checkTime = checkedState.checkTime;
+        remark = checkedState.remark;
+        photos = checkedState.photos;
       }
-      return asset;
+
+      const checkRecord = batchCheckRecords.find(r => r.assetId === asset.id);
+      if (checkRecord) {
+        checkStatus = checkRecord.status as AssetStatus;
+        checkTime = checkRecord.checkedAt;
+        if (checkRecord.remark) remark = checkRecord.remark;
+        if (checkRecord.photos && checkRecord.photos.length > 0) photos = checkRecord.photos;
+      }
+
+      const exception = batchExceptions.find(e => e.assetNo === asset.assetNo);
+      if (exception) {
+        if (exception.type === 'lost') checkStatus = 'lost';
+        else if (exception.type === 'idle') checkStatus = 'idle';
+        else if (exception.type === 'mismatch') checkStatus = 'mismatch';
+        checkTime = checkTime || exception.reportedAt;
+        if (exception.description && !remark) remark = exception.description;
+        if (exception.photos && exception.photos.length > 0 && (!photos || photos.length === 0)) {
+          photos = exception.photos;
+        }
+      }
+
+      return {
+        ...asset,
+        checkStatus,
+        checkTime,
+        checkedAt: checkTime,
+        remark,
+        photos
+      };
     });
   }
 }));

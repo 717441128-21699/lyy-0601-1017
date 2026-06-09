@@ -92,34 +92,7 @@ const ExceptionPage: React.FC = () => {
   }, [batchOptions, batchFilter]);
 
   const handleGenerateSummary = () => {
-    if (batches.length > 1) {
-      const batchOptionsForPicker = [
-        '全部批次',
-        ...batches.map(b => `${b.name} (${b.batchNo})${b.status === 'ongoing' ? ' - 进行中' : ''}`)
-      ];
-      
-      Taro.showActionSheet({
-        itemList: batchOptionsForPicker,
-        success: (res) => {
-          const selectedIndex = res.tapIndex;
-          let selectedBatchNo = 'all';
-          let selectedBatchName = '全部批次';
-          
-          if (selectedIndex === 0) {
-            selectedBatchNo = 'all';
-            selectedBatchName = '全部批次';
-          } else {
-            const selectedBatch = batches[selectedIndex - 1];
-            selectedBatchNo = selectedBatch.batchNo;
-            selectedBatchName = selectedBatch.name;
-          }
-          
-          showSummaryForBatch(selectedBatchNo, selectedBatchName);
-        }
-      });
-    } else {
-      showSummaryForBatch(batchFilter, currentBatchName);
-    }
+    showSummaryForBatch(batchFilter, currentBatchName);
   };
 
   const showSummaryForBatch = (batchNo: string, batchName: string) => {

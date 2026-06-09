@@ -27,9 +27,14 @@ const SubmitResultPage: React.FC = () => {
     return historyList.find(h => h.id === historyId) || null;
   }, [getHistoryWithLocal, historyId, refreshTrigger]);
 
-  const draftCount = useMemo(() => {
-    return getDraftWithLocal().length;
+  const allDrafts = useMemo(() => {
+    return getDraftWithLocal();
   }, [getDraftWithLocal, refreshTrigger]);
+
+  const batchDraftCount = useMemo(() => {
+    if (!history) return 0;
+    return allDrafts.filter(d => d.batchNo === history.batchNo).length;
+  }, [allDrafts, history]);
 
   const batchAssets = useMemo(() => {
     if (!history) return [];
@@ -63,9 +68,15 @@ const SubmitResultPage: React.FC = () => {
 
   const cleanedDraftCount = useMemo(() => {
     if (!history) return 0;
-    const totalExpected = history.normalAssets + history.exceptionAssets;
-    return Math.max(0, totalExpected - batchAssets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length);
+    const totalSubmitted = batchAssets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length;
+    const expectedTotal = history.normalAssets + history.exceptionAssets;
+    return Math.max(0, Math.min(totalSubmitted, expectedTotal));
   }, [history, batchAssets]);
+
+  const hasOtherBatchDrafts = useMemo(() => {
+    if (!history) return false;
+    return allDrafts.some(d => d.batchNo !== history.batchNo);
+  }, [allDrafts, history]);
 
   useDidShow(() => {
     refresh();
@@ -264,12 +275,13 @@ const SubmitResultPage: React.FC = () => {
                 </Text>
                 <View style={{ flex: 1 }}>
                   <Text className={styles.cleanupText}>
-                    暂存记录清理：{cleanedDraftCount} 条已提交
+                    本批次暂存记录：{cleanedDraftCount} 条已提交
                   </Text>
                   <Text className={styles.cleanupSubtext}>
-                    {draftCount === 0 
-                      ? '所有暂存数据已清理完成' 
-                      : `还有 ${draftCount} 条暂存记录未清理`}
+                    {batchDraftCount === 0 
+                      ? '本批次暂存已全部清理' 
+                      : `本批次还有 ${batchDraftCount} 条暂存未提交`}
+                    {hasOtherBatchDrafts && ' (其他批次暂存不影响本批次结果)'}
                   </Text>
                 </View>
               </View>
