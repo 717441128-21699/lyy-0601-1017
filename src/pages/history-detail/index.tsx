@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
+import { View, Text, ScrollView, Button } from '@tarojs/components';
+import Taro, { useRouter, useDidShow } from '@tarojs/taro';
 import { HistoryInventory, ExceptionRecord } from '@/types';
-import { getExceptionSummary } from '@/data/mockExceptions';
 import StatusTag from '@/components/StatusTag';
 import ProgressBar from '@/components/ProgressBar';
 import EmptyState from '@/components/EmptyState';
@@ -12,15 +11,25 @@ import styles from './index.module.scss';
 const HistoryDetailPage: React.FC = () => {
   const router = useRouter();
   const historyId = router.params.id as string;
+  const batchNo = router.params.batchNo as string;
+  const [loading, setLoading] = useState(true);
   
   const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
   const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
+  const getHistoryByBatchNo = useInventoryStore(state => state.getHistoryByBatchNo);
   const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
+  const refresh = useInventoryStore(state => state.refresh);
 
   const history = useMemo(() => {
     const historyList = getHistoryWithLocal();
-    return historyList.find(h => h.id === historyId) || null;
-  }, [getHistoryWithLocal, historyId, refreshTrigger]);
+    if (historyId) {
+      return historyList.find(h => h.id === historyId) || null;
+    }
+    if (batchNo) {
+      return getHistoryByBatchNo(batchNo) || null;
+    }
+    return null;
+  }, [getHistoryWithLocal, getHistoryByBatchNo, historyId, batchNo, refreshTrigger]);
 
   const exceptions = useMemo(() => {
     if (!history) return [];
@@ -28,13 +37,30 @@ const HistoryDetailPage: React.FC = () => {
     return allExceptions.filter(e => e.batchNo === history.batchNo);
   }, [history, getExceptionsWithLocal, refreshTrigger]);
 
+  const rooms = useMemo(() => {
+    if (!history?.rooms) return [];
+    return history.rooms;
+  }, [history]);
+
+  useDidShow(() => {
+    refresh();
+    setLoading(false);
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (history) {
-      console.log('[HistoryDetailPage] 加载历史盘点', history.batchNo, '异常数:', exceptions.length);
-    } else {
-      console.log('[HistoryDetailPage] 未找到历史记录，ID:', historyId);
+      console.log('[HistoryDetailPage] 加载历史盘点', history.batchNo, '异常数:', exceptions.length, '房间数:', rooms.length);
+    } else if (!loading) {
+      console.log('[HistoryDetailPage] 未找到历史记录，ID:', historyId, 'batchNo:', batchNo);
     }
-  }, [history, exceptions, historyId]);
+  }, [history, exceptions, rooms, historyId, batchNo, loading]);
 
   const handleExport = () => {
     Taro.showModal({
@@ -61,13 +87,43 @@ const HistoryDetailPage: React.FC = () => {
     });
   };
 
-  if (!history) {
+  if (loading) {
     return (
       <View className={styles.historyDetailPage}>
         <View style={{ padding: '120rpx 0', textAlign: 'center' }}>
           <Text style={{ fontSize: '100rpx', opacity: 0.5 }}>📚</Text>
           <View style={{ marginTop: '32rpx', fontSize: '28rpx', color: '#86909C' }}>
             加载中...
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (!history) {
+    return (
+      <View className={styles.historyDetailPage}>
+        <View style={{ padding: '120rpx 32rpx', textAlign: 'center' }}>
+          <Text style={{ fontSize: '100rpx', opacity: 0.5 }}>�</Text>
+          <View style={{ marginTop: '32rpx', fontSize: '32rpx', color: '#4E5969', fontWeight: 600 }}>
+            未找到该批次盘点记录
+          </View>
+          <View style={{ marginTop: '16rpx', fontSize: '28rpx', color: '#86909C' }}>
+            {batchNo ? `批次号：${batchNo}` : historyId ? `记录ID：${historyId}` : ''}
+          </View>
+          <View style={{ marginTop: '48rpx' }}>
+            <Button
+              style={{
+                background: '#165DFF',
+                color: '#fff',
+                borderRadius: '48rpx',
+                padding: '0 48rpx',
+                fontSize: '28rpx'
+              }}
+              onClick={() => Taro.switchTab({ url: '/pages/tasks/index' })}
+            >
+              返回任务列表
+            </Button>
           </View>
         </View>
       </View>
@@ -83,17 +139,15 @@ const HistoryDetailPage: React.FC = () => {
     resolved: exceptions.filter(e => e.status === 'resolved').length,
     total: exceptions.length
   };
-  const mockRooms = [
-    { id: 'r1', name: '会议室A', checked: 8, total: 8 },
-    { id: 'r2', name: '开放办公区', checked: 15, total: 16 },
-    { id: 'r3', name: '机房', checked: 4, total: 4 },
-    { id: 'r4', name: '文件室', checked: 6, total: 6 }
-  ];
 
   const exceptionTypeColors: Record<string, string> = {
     'lost': '',
     'idle': 'idle',
     'mismatch': 'mismatch'
+  };
+
+  const handleBackToTasks = () => {
+    Taro.switchTab({ url: '/pages/tasks/index' });
   };
 
   return (
@@ -200,7 +254,7 @@ const HistoryDetailPage: React.FC = () => {
           </View>
           {exceptions.length > 0 ? (
             <View className={styles.exceptionList}>
-              {exceptions.slice(0, 3).map(exp => (
+              {exceptions.map(exp => (
                 <View 
                   key={exp.id} 
                   className={[styles.exceptionItem, styles[exceptionTypeColors[exp.type] || '']].join(' ')}
@@ -220,11 +274,11 @@ const HistoryDetailPage: React.FC = () => {
                     </View>
                     <View className={styles.metaItem}>
                       <Text>👤</Text>
-                      <Text>{exp.reportedBy}</Text>
+                      <Text>{exp.reportedBy || exp.reporter}</Text>
                     </View>
                     <View className={styles.metaItem}>
                       <Text>📅</Text>
-                      <Text>{exp.reportedAt}</Text>
+                      <Text>{exp.reportedAt || exp.createdAt}</Text>
                     </View>
                   </View>
                   {exp.description && (
@@ -251,25 +305,33 @@ const HistoryDetailPage: React.FC = () => {
               房间盘点进度
             </Text>
           </View>
-          <View className={styles.roomProgress}>
-            {mockRooms.map(room => (
-              <View key={room.id} className={styles.roomItem}>
-                <View className={styles.roomHeader}>
-                  <Text className={styles.roomName}>
-                    <Text className={styles.roomIcon}>🏢</Text>
-                    {room.name}
-                  </Text>
-                  <Text className={styles.roomCount}>
-                    {room.checked}/{room.total}
-                  </Text>
+          {rooms.length > 0 ? (
+            <View className={styles.roomProgress}>
+              {rooms.map(room => (
+                <View key={room.id} className={styles.roomItem}>
+                  <View className={styles.roomHeader}>
+                    <Text className={styles.roomName}>
+                      <Text className={styles.roomIcon}>🏢</Text>
+                      {room.name}
+                    </Text>
+                    <Text className={styles.roomCount}>
+                      {room.checkedAssets}/{room.totalAssets}
+                    </Text>
+                  </View>
+                  <ProgressBar 
+                    progress={room.totalAssets > 0 ? Math.round((room.checkedAssets / room.totalAssets) * 100) : 0} 
+                    height={12} 
+                  />
                 </View>
-                <ProgressBar 
-                  progress={Math.round((room.checked / room.total) * 100)} 
-                  height={12} 
-                />
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              icon="📋"
+              text="暂无房间数据"
+              subText="该批次暂无房间盘点进度信息"
+            />
+          )}
         </View>
 
         <View className={styles.actionCard}>

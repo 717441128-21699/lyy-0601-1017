@@ -7,7 +7,8 @@ export default defineAppConfig({
     'pages/mine/index',
     'pages/asset-detail/index',
     'pages/room-assets/index',
-    'pages/history-detail/index'
+    'pages/history-detail/index',
+    'pages/submit-result/index'
   ],
   window: {
     backgroundTextStyle: 'light',

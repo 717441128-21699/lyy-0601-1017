@@ -131,6 +131,8 @@ export interface HistoryInventory {
   mismatchAssets: number;
   completedAt: string;
   checker: string;
+  rooms?: RoomInfo[];
+  taskId?: string;
 }
 
 // 用户信息

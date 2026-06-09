@@ -10,17 +10,108 @@
     background: linear-gradient(135deg, $color-error 0%, #FF7875 100%);
     margin-bottom: $spacing-md;
 
+    .statsHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-lg;
+    }
+
     .statsTitle {
       font-size: $font-size-md;
       font-weight: $font-weight-semibold;
       color: $color-text-white;
-      margin-bottom: $spacing-lg;
       display: flex;
       align-items: center;
       gap: $spacing-sm;
 
       .titleIcon {
         font-size: 36rpx;
+      }
+    }
+
+    .batchSelector {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 12rpx 24rpx;
+      border-radius: $radius-button;
+      backdrop-filter: blur(10px);
+
+      .batchText {
+        font-size: $font-size-sm;
+        color: $color-text-white;
+        font-weight: $font-weight-medium;
+        max-width: 200rpx;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .batchArrow {
+        font-size: 20rpx;
+        color: $color-text-white;
+      }
+    }
+
+    .batchDropdown {
+      position: absolute;
+      top: 160rpx;
+      right: $page-padding;
+      left: $page-padding;
+      background: $color-bg-card;
+      border-radius: $radius-lg;
+      box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .batchOption {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: $spacing-md $spacing-lg;
+      border-bottom: 1rpx solid $color-border-light;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:active {
+        background: $color-bg-secondary;
+      }
+
+      &.batchOptionActive {
+        background: rgba(22, 93, 255, 0.08);
+        
+        .batchOptionName {
+          color: $color-primary;
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      .batchOptionName {
+        font-size: $font-size-sm;
+        color: $color-text-primary;
+        flex: 1;
+      }
+
+      .batchOptionTag {
+        font-size: 20rpx;
+        padding: 4rpx 12rpx;
+        border-radius: $radius-sm;
+        margin-left: $spacing-sm;
+
+        &.tagOngoing {
+          background: rgba(22, 93, 255, 0.1);
+          color: $color-primary;
+        }
+
+        &.tagCompleted {
+          background: rgba(0, 180, 42, 0.1);
+          color: $color-success;
+        }
       }
     }
 

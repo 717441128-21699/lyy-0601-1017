@@ -65,12 +65,10 @@ const MinePage: React.FC = () => {
         if (res.confirm) {
           const history = submitInventoryResult(ongoingTask.id);
           if (history) {
-            Taro.showToast({
-              title: '提交成功',
-              icon: 'success',
-              duration: 2000
-            });
             console.log('[MinePage] 提交盘点结果成功，生成历史记录:', history.batchNo);
+            Taro.redirectTo({
+              url: `/pages/submit-result/index?historyId=${history.id}`
+            });
           } else {
             Taro.showToast({
               title: '提交失败',

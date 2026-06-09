@@ -87,11 +87,10 @@ const TasksPage: React.FC = () => {
         });
         console.log('[TasksPage] 跳转到历史盘点详情', history.id, history.batchNo);
       } else {
-        Taro.showToast({
-          title: '历史记录不存在',
-          icon: 'none',
-          duration: 2000
+        Taro.navigateTo({
+          url: `/pages/history-detail/index?batchNo=${task.batchNo}`
         });
+        console.log('[TasksPage] 未找到历史记录，通过batchNo跳转', task.batchNo);
       }
     } else if (task && task.status === 'ongoing') {
       Taro.switchTab({

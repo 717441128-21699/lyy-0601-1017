@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Button, usePullDownRefresh } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { ExceptionRecord, AssetStatus } from '@/types';
-import { getExceptionSummary } from '@/data/mockExceptions';
 import ExceptionCard from '@/components/ExceptionCard';
 import EmptyState from '@/components/EmptyState';
 import { useInventoryStore } from '@/store';
@@ -15,15 +14,32 @@ type StatusFilter = 'all' | 'pending' | 'processing' | 'resolved';
 const ExceptionPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [batchFilter, setBatchFilter] = useState<string>('all');
+  const [showBatchSelector, setShowBatchSelector] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
   const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
+  const getAllBatches = useInventoryStore(state => state.getAllBatches);
   const refresh = useInventoryStore(state => state.refresh);
 
-  const exceptions = useMemo(() => {
+  const allExceptions = useMemo(() => {
     return getExceptionsWithLocal();
   }, [getExceptionsWithLocal, refreshTrigger]);
+
+  const batches = useMemo(() => {
+    return getAllBatches();
+  }, [getAllBatches, refreshTrigger]);
+
+  const batchOptions = useMemo(() => {
+    const options = [{ batchNo: 'all', name: '全部批次', status: 'all' }];
+    return [...options, ...batches];
+  }, [batches]);
+
+  const exceptions = useMemo(() => {
+    if (batchFilter === 'all') return allExceptions;
+    return allExceptions.filter(e => e.batchNo === batchFilter);
+  }, [allExceptions, batchFilter]);
 
   const loadExceptions = useCallback(() => {
     setLoading(true);
@@ -40,6 +56,10 @@ const ExceptionPage: React.FC = () => {
     console.log('[ExceptionPage] 页面加载，刷新数据');
   }, [refresh]);
 
+  useDidShow(() => {
+    refresh();
+  });
+
   usePullDownRefresh(() => {
     loadExceptions();
   });
@@ -50,23 +70,71 @@ const ExceptionPage: React.FC = () => {
     return typeMatch && statusMatch;
   });
 
-  const handleGenerateSummary = () => {
-    const idle = exceptions.filter(e => e.type === 'idle').length;
-    const lost = exceptions.filter(e => e.type === 'lost').length;
-    const mismatch = exceptions.filter(e => e.type === 'mismatch').length;
-    const pending = exceptions.filter(e => e.status === 'pending').length;
-    const processing = exceptions.filter(e => e.status === 'processing').length;
-    const resolved = exceptions.filter(e => e.status === 'resolved').length;
-    const total = exceptions.length;
+  const currentBatchName = useMemo(() => {
+    const batch = batchOptions.find(b => b.batchNo === batchFilter);
+    return batch?.name || '全部批次';
+  }, [batchOptions, batchFilter]);
 
+  const handleGenerateSummary = () => {
+    if (batches.length > 1) {
+      const batchOptionsForPicker = [
+        '全部批次',
+        ...batches.map(b => `${b.name} (${b.batchNo})${b.status === 'ongoing' ? ' - 进行中' : ''}`)
+      ];
+      
+      Taro.showActionSheet({
+        itemList: batchOptionsForPicker,
+        success: (res) => {
+          const selectedIndex = res.tapIndex;
+          let selectedBatchNo = 'all';
+          let selectedBatchName = '全部批次';
+          
+          if (selectedIndex === 0) {
+            selectedBatchNo = 'all';
+            selectedBatchName = '全部批次';
+          } else {
+            const selectedBatch = batches[selectedIndex - 1];
+            selectedBatchNo = selectedBatch.batchNo;
+            selectedBatchName = selectedBatch.name;
+          }
+          
+          showSummaryForBatch(selectedBatchNo, selectedBatchName);
+        }
+      });
+    } else {
+      showSummaryForBatch(batchFilter, currentBatchName);
+    }
+  };
+
+  const showSummaryForBatch = (batchNo: string, batchName: string) => {
+    const targetExceptions = batchNo === 'all' 
+      ? allExceptions 
+      : allExceptions.filter(e => e.batchNo === batchNo);
+    
+    const idle = targetExceptions.filter(e => e.type === 'idle').length;
+    const lost = targetExceptions.filter(e => e.type === 'lost').length;
+    const mismatch = targetExceptions.filter(e => e.type === 'mismatch').length;
+    const pending = targetExceptions.filter(e => e.status === 'pending').length;
+    const processing = targetExceptions.filter(e => e.status === 'processing').length;
+    const resolved = targetExceptions.filter(e => e.status === 'resolved').length;
+    const total = targetExceptions.length;
+
+    const title = batchNo === 'all' ? '全批次异常汇总' : `${batchName} 异常汇总`;
+    
     Taro.showModal({
-      title: '异常汇总报告',
-      content: `本次盘点异常汇总：\n\n异常总数：${total} 项\n\n闲置资产：${idle} 项\n丢失资产：${lost} 项\n位置不符：${mismatch} 项\n\n待处理：${pending} 项\n处理中：${processing} 项\n已解决：${resolved} 项`,
+      title,
+      content: `${batchNo !== 'all' ? `批次号：${batchNo}\n\n` : ''}异常总数：${total} 项\n\n闲置资产：${idle} 项\n丢失资产：${lost} 项\n位置不符：${mismatch} 项\n\n待处理：${pending} 项\n处理中：${processing} 项\n已解决：${resolved} 项`,
       showCancel: false,
       confirmText: '我知道了',
       confirmColor: '#165dff'
     });
-    console.log('[ExceptionPage] 生成异常汇总', { total, idle, lost, mismatch, pending, processing, resolved });
+    console.log('[ExceptionPage] 生成异常汇总', { batchNo, batchName, total, idle, lost, mismatch, pending, processing, resolved });
+  };
+
+  const handleBatchSelect = (batchNo: string) => {
+    setBatchFilter(batchNo);
+    setShowBatchSelector(false);
+    console.log('[ExceptionPage] 选择批次:', batchNo);
   };
 
   const handleExceptionClick = (exception: ExceptionRecord) => {
@@ -104,29 +172,65 @@ const ExceptionPage: React.FC = () => {
   return (
     <View className={styles.exceptionPage}>
       <View className={styles.statsSection}>
-        <Text className={styles.statsTitle}>
-          <Text className={styles.titleIcon}>⚠️</Text>
-          异常统计
-        </Text>
+        <View className={styles.statsHeader}>
+          <Text className={styles.statsTitle}>
+            <Text className={styles.titleIcon}>⚠️</Text>
+            异常统计
+          </Text>
+          <View 
+            className={styles.batchSelector}
+            onClick={() => setShowBatchSelector(!showBatchSelector)}
+          >
+            <Text className={styles.batchText}>{currentBatchName}</Text>
+            <Text className={styles.batchArrow}>▼</Text>
+          </View>
+        </View>
+        
+        {showBatchSelector && (
+          <View className={styles.batchDropdown}>
+            {batchOptions.map(batch => (
+              <View
+                key={batch.batchNo}
+                className={classnames(
+                  styles.batchOption,
+                  batchFilter === batch.batchNo && styles.batchOptionActive
+                )}
+                onClick={() => handleBatchSelect(batch.batchNo)}
+              >
+                <Text className={styles.batchOptionName}>{batch.name}</Text>
+                {batch.status !== 'all' && (
+                  <Text className={classnames(
+                    styles.batchOptionTag,
+                    batch.status === 'ongoing' && styles.tagOngoing,
+                    batch.status === 'completed' && styles.tagCompleted
+                  )}>
+                    {batch.status === 'ongoing' ? '进行中' : '已完成'}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+        
         <View className={styles.statsGrid}>
           <View className={styles.statItem}>
             <Text className={styles.statIcon}>📦</Text>
-            <Text className={styles.statValue}>{summary.idle}</Text>
+            <Text className={styles.statValue}>{exceptions.filter(e => e.type === 'idle').length}</Text>
             <Text className={styles.statLabel}>闲置</Text>
           </View>
           <View className={styles.statItem}>
             <Text className={styles.statIcon}>❓</Text>
-            <Text className={styles.statValue}>{summary.lost}</Text>
+            <Text className={styles.statValue}>{exceptions.filter(e => e.type === 'lost').length}</Text>
             <Text className={styles.statLabel}>丢失</Text>
           </View>
           <View className={styles.statItem}>
             <Text className={styles.statIcon}>📍</Text>
-            <Text className={styles.statValue}>{summary.mismatch}</Text>
+            <Text className={styles.statValue}>{exceptions.filter(e => e.type === 'mismatch').length}</Text>
             <Text className={styles.statLabel}>位置不符</Text>
           </View>
           <View className={styles.statItem}>
             <Text className={styles.statIcon}>⏳</Text>
-            <Text className={styles.statValue}>{summary.pending}</Text>
+            <Text className={styles.statValue}>{exceptions.filter(e => e.status === 'pending').length}</Text>
             <Text className={styles.statLabel}>待处理</Text>
           </View>
         </View>

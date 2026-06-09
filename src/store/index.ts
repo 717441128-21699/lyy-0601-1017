@@ -25,6 +25,9 @@ interface InventoryStore {
   getTasksWithState: () => InventoryTask[];
   getExceptionsWithLocal: () => ExceptionRecord[];
   getHistoryWithLocal: () => HistoryInventory[];
+  getHistoryByBatchNo: (batchNo: string) => HistoryInventory | null;
+  getAllBatches: () => { batchNo: string; name: string; status: string }[];
+  getExceptionsByBatch: (batchNo: string) => ExceptionRecord[];
   getDraftWithLocal: () => CheckRecord[];
   getAssetWithCheckState: (assetId: string) => Asset | null;
   getAssetsByRoomWithState: (roomId: string) => Asset[];
@@ -225,6 +228,16 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     const mismatchAssets = checkedAssets.filter(a => a.checkStatus === 'mismatch').length;
     const exceptionAssets = idleAssets + lostAssets + mismatchAssets;
 
+    const roomsWithProgress = task.rooms.map(room => {
+      const roomAssets = taskAssets.filter(a => a.roomId === room.id);
+      const roomChecked = roomAssets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length;
+      return {
+        ...room,
+        checkedAssets: roomChecked,
+        totalAssets: roomAssets.length
+      };
+    });
+
     const historyRecord: HistoryInventory = {
       id: `hist-local-${Date.now()}`,
       batchNo: task.batchNo,
@@ -239,7 +252,9 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
       idleAssets,
       mismatchAssets,
       completedAt: new Date().toLocaleString(),
-      checker: '当前用户'
+      checker: '当前用户',
+      rooms: roomsWithProgress,
+      taskId: taskId
     };
 
     storage.saveHistoryRecord(historyRecord);
@@ -314,6 +329,33 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     return [...state.historyRecords].sort((a, b) => 
       new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
     );
+  },
+
+  getHistoryByBatchNo: (batchNo: string): HistoryInventory | null => {
+    const state = get();
+    return state.historyRecords.find(h => h.batchNo === batchNo) || null;
+  },
+
+  getAllBatches: (): { batchNo: string; name: string; status: string }[] => {
+    const state = get();
+    const completedBatches = state.historyRecords.map(h => ({
+      batchNo: h.batchNo,
+      name: h.name,
+      status: 'completed'
+    }));
+    const ongoingBatches = state.tasks
+      .filter(t => t.status === 'ongoing')
+      .map(t => ({
+        batchNo: t.batchNo,
+        name: t.name,
+        status: 'ongoing'
+      }));
+    return [...ongoingBatches, ...completedBatches];
+  },
+
+  getExceptionsByBatch: (batchNo: string): ExceptionRecord[] => {
+    const state = get();
+    return state.exceptions.filter(e => e.batchNo === batchNo);
   },
 
   getDraftWithLocal: (): CheckRecord[] => {
