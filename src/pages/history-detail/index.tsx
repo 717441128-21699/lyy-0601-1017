@@ -1,37 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { HistoryInventory, ExceptionRecord } from '@/types';
-import { getHistoryList } from '@/data/mockHistory';
-import { mockExceptions, getExceptionSummary } from '@/data/mockExceptions';
+import { getExceptionSummary } from '@/data/mockExceptions';
 import StatusTag from '@/components/StatusTag';
 import ProgressBar from '@/components/ProgressBar';
 import EmptyState from '@/components/EmptyState';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 const HistoryDetailPage: React.FC = () => {
   const router = useRouter();
   const historyId = router.params.id as string;
   
-  const [history, setHistory] = useState<HistoryInventory | null>(null);
-  const [exceptions, setExceptions] = useState<ExceptionRecord[]>([]);
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
+  const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
+
+  const history = useMemo(() => {
+    const historyList = getHistoryWithLocal();
+    return historyList.find(h => h.id === historyId) || null;
+  }, [getHistoryWithLocal, historyId, refreshTrigger]);
+
+  const exceptions = useMemo(() => {
+    if (!history) return [];
+    const allExceptions = getExceptionsWithLocal();
+    return allExceptions.filter(e => e.batchNo === history.batchNo);
+  }, [history, getExceptionsWithLocal, refreshTrigger]);
 
   useEffect(() => {
-    const historyList = getHistoryList();
-    const found = historyList.find(h => h.id === historyId);
-    if (found) {
-      setHistory(found);
-      const relatedExceptions = mockExceptions.filter(e => e.batchNo === found.batchNo);
-      setExceptions(relatedExceptions);
-      console.log('[HistoryDetailPage] 加载历史盘点', found.batchNo, '异常数:', relatedExceptions.length);
+    if (history) {
+      console.log('[HistoryDetailPage] 加载历史盘点', history.batchNo, '异常数:', exceptions.length);
     } else {
-      Taro.showToast({
-        title: '记录不存在',
-        icon: 'none',
-        duration: 2000
-      });
+      console.log('[HistoryDetailPage] 未找到历史记录，ID:', historyId);
     }
-  }, [historyId]);
+  }, [history, exceptions, historyId]);
 
   const handleExport = () => {
     Taro.showModal({
@@ -71,7 +74,15 @@ const HistoryDetailPage: React.FC = () => {
     );
   }
 
-  const exceptionSummary = getExceptionSummary(history.batchNo);
+  const exceptionSummary = {
+    idle: exceptions.filter(e => e.type === 'idle').length,
+    lost: exceptions.filter(e => e.type === 'lost').length,
+    mismatch: exceptions.filter(e => e.type === 'mismatch').length,
+    pending: exceptions.filter(e => e.status === 'pending').length,
+    processing: exceptions.filter(e => e.status === 'processing').length,
+    resolved: exceptions.filter(e => e.status === 'resolved').length,
+    total: exceptions.length
+  };
   const mockRooms = [
     { id: 'r1', name: '会议室A', checked: 8, total: 8 },
     { id: 'r2', name: '开放办公区', checked: 15, total: 16 },

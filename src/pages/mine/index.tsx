@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
-import Taro from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
 import { CheckRecord, HistoryInventory, UserInfo } from '@/types';
 import { storage } from '@/utils/storage';
-import { getHistoryList, getDraftRecords } from '@/data/mockHistory';
 import StatusTag from '@/components/StatusTag';
 import EmptyState from '@/components/EmptyState';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 type TabType = 'draft' | 'history';
@@ -22,52 +22,68 @@ const mockUser: UserInfo = {
 
 const MinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('draft');
-  const [draftRecords, setDraftRecords] = useState<CheckRecord[]>([]);
-  const [historyList, setHistoryList] = useState<HistoryInventory[]>([]);
   const [user] = useState<UserInfo>(mockUser);
 
-  const loadData = useCallback(() => {
-    const drafts = storage.getDraftRecords();
-    const mockDrafts = getDraftRecords();
-    setDraftRecords([...drafts, ...mockDrafts]);
-    setHistoryList(getHistoryList());
-    console.log('[MinePage] 数据加载完成', { drafts: drafts.length + mockDrafts.length, history: getHistoryList().length });
-  }, []);
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const refresh = useInventoryStore(state => state.refresh);
+  const getTasksWithState = useInventoryStore(state => state.getTasksWithState);
+  const submitInventoryResult = useInventoryStore(state => state.submitInventoryResult);
+  const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const tasks = useMemo(() => getTasksWithState(), [getTasksWithState, refreshTrigger]);
+  const historyList = useMemo(() => getHistoryWithLocal(), [getHistoryWithLocal, refreshTrigger]);
 
-  useEffect(() => {
-    const unsubscribe = Taro.preloadPage?.({
-      url: '/pages/mine/index'
-    });
-    return () => unsubscribe?.();
-  }, []);
+  const ongoingTask = useMemo(() => {
+    return tasks.find(t => t.status === 'ongoing');
+  }, [tasks]);
 
-  const handleSubmitResult = () => {
-    const ongoingTask = draftRecords.find(r => !r.isDraft) || null;
+  const draftRecords = useMemo(() => {
+    return storage.getDraftRecords();
+  }, [refreshTrigger]);
+
+  useDidShow(() => {
+    refresh();
+    console.log('[MinePage] 页面显示，刷新数据');
+  });
+
+  const handleSubmitResult = useCallback(() => {
+    if (!ongoingTask) {
+      Taro.showToast({
+        title: '没有进行中的任务',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+
     Taro.showModal({
       title: '提交盘点结果',
-      content: `确定提交${user.department}的盘点结果吗？\n\n已盘点：${ongoingTask ? '部分' : '无'}资产\n暂存记录：${draftRecords.length}条\n\n提交后将无法修改，请确认所有资产已盘点完成。`,
+      content: `确定提交${user.department}的盘点结果吗？\n\n任务：${ongoingTask.name}\n批次：${ongoingTask.batchNo}\n暂存记录：${draftRecords.length}条\n\n提交后将无法修改，请确认所有资产已盘点完成。`,
       confirmText: '确认提交',
       confirmColor: '#165dff',
       success: (res) => {
         if (res.confirm) {
-          Taro.showToast({
-            title: '提交成功',
-            icon: 'success',
-            duration: 2000
-          });
-          storage.clearDraftRecords();
-          setDraftRecords([]);
-          console.log('[MinePage] 提交盘点结果成功');
+          const history = submitInventoryResult(ongoingTask.id);
+          if (history) {
+            Taro.showToast({
+              title: '提交成功',
+              icon: 'success',
+              duration: 2000
+            });
+            console.log('[MinePage] 提交盘点结果成功，生成历史记录:', history.batchNo);
+          } else {
+            Taro.showToast({
+              title: '提交失败',
+              icon: 'none',
+              duration: 2000
+            });
+          }
         }
       }
     });
-  };
+  }, [ongoingTask, user.department, draftRecords.length, submitInventoryResult]);
 
-  const handleDeleteDraft = (recordId: string, index: number) => {
+  const handleDeleteDraft = (recordId: string) => {
     Taro.showModal({
       title: '删除确认',
       content: '确定删除这条暂存记录吗？',
@@ -76,7 +92,7 @@ const MinePage: React.FC = () => {
       success: (res) => {
         if (res.confirm) {
           storage.removeDraftRecord(recordId);
-          setDraftRecords(prev => prev.filter((_, i) => i !== index));
+          refresh();
           Taro.showToast({
             title: '已删除',
             icon: 'success',
@@ -195,7 +211,7 @@ const MinePage: React.FC = () => {
                     <View style={{ display: 'flex', gap: '16rpx' }}>
                       <Button
                         className={classnames(styles.actionBtn, styles.secondary)}
-                        onClick={() => handleDeleteDraft(record.id, index)}
+                        onClick={() => handleDeleteDraft(record.id)}
                       >
                         删除
                       </Button>

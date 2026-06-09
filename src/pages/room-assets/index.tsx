@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, Button, ScrollView } from '@tarojs/components';
-import Taro, { useRouter } from '@tarojs/taro';
+import Taro, { useRouter, useDidShow } from '@tarojs/taro';
 import classnames from 'classnames';
-import { Asset, AssetStatus, InventoryTask } from '@/types';
-import { getAssetsByRoom, searchAssets } from '@/data/mockAssets';
-import { mockTasks } from '@/data/mockTasks';
+import { Asset, AssetStatus, InventoryTask, CheckRecord } from '@/types';
+import { getAssetsByRoom } from '@/data/mockAssets';
 import { storage } from '@/utils/storage';
 import StatusTag from '@/components/StatusTag';
 import ProgressBar from '@/components/ProgressBar';
 import SearchBar from '@/components/SearchBar';
 import EmptyState from '@/components/EmptyState';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 type FilterType = 'all' | 'unchecked' | 'checked';
@@ -28,37 +28,70 @@ const RoomAssetsPage: React.FC = () => {
   const roomId = router.params.roomId as string;
   const taskId = router.params.taskId as string;
   
-  const [assets, setAssets] = useState<Asset[]>(() => {
-    const initial = getAssetsByRoom(roomId || 'room-001');
-    console.log('[RoomAssetsPage] 初始加载资产', initial.length, '条');
-    return initial;
-  });
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
-  const currentTask: InventoryTask = mockTasks.find(t => t.id === taskId) || mockTasks[0];
-  
-  const currentRoom = currentTask?.rooms?.find(r => r.id === roomId) || {
-    id: roomId,
-    name: '会议室A',
-    building: 'A栋',
-    floor: '3层',
-    totalAssets: assets.length,
-    checkedAssets: assets.filter(a => a.checkStatus === 'normal').length
-  };
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const getAssetsByRoomWithState = useInventoryStore(state => state.getAssetsByRoomWithState);
+  const getTaskWithState = useInventoryStore(state => state.getTaskWithState);
+  const getRoomCheckProgress = useInventoryStore(state => state.getRoomCheckProgress);
+  const markAssetChecked = useInventoryStore(state => state.markAssetChecked);
+  const submitCheckResult = useInventoryStore(state => state.submitCheckResult);
+  const refresh = useInventoryStore(state => state.refresh);
 
-  const roomProgress = currentRoom.totalAssets > 0 
-    ? Math.round((currentRoom.checkedAssets / currentRoom.totalAssets) * 100) 
-    : 0;
+  const assets = useMemo(() => {
+    return getAssetsByRoomWithState(roomId || 'room-001');
+  }, [getAssetsByRoomWithState, roomId, refreshTrigger]);
+
+  const currentTask = useMemo(() => {
+    return getTaskWithState(taskId || 'task-001');
+  }, [getTaskWithState, taskId, refreshTrigger]);
+
+  const roomProgress = useMemo(() => {
+    return getRoomCheckProgress(roomId || 'room-001', taskId || 'task-001');
+  }, [getRoomCheckProgress, roomId, taskId, refreshTrigger]);
+
+  const currentRoom = useMemo(() => {
+    if (!currentTask) {
+      return {
+        id: roomId,
+        name: '会议室A',
+        building: 'A栋',
+        floor: '3层',
+        totalAssets: assets.length,
+        checkedAssets: roomProgress.checked
+      };
+    }
+    
+    const room = currentTask.rooms?.find(r => r.id === roomId);
+    return {
+      id: roomId,
+      name: room?.name || '会议室A',
+      building: room?.building || 'A栋',
+      floor: room?.floor || '3层',
+      totalAssets: roomProgress.total,
+      checkedAssets: roomProgress.checked
+    };
+  }, [currentTask, roomId, assets.length, roomProgress]);
+
+  useEffect(() => {
+    refresh();
+    console.log('[RoomAssetsPage] 页面加载，刷新数据');
+  }, [refresh]);
+
+  useDidShow(() => {
+    refresh();
+    console.log('[RoomAssetsPage] 页面显示，刷新数据');
+  });
 
   const filteredAssets = useMemo(() => {
     let result = [...assets];
     
     if (filter === 'unchecked') {
-      result = result.filter(a => a.checkStatus === 'unchecked');
+      result = result.filter(a => !a.checkStatus || a.checkStatus === 'unchecked');
     } else if (filter === 'checked') {
-      result = result.filter(a => a.checkStatus !== 'unchecked');
+      result = result.filter(a => a.checkStatus && a.checkStatus !== 'unchecked');
     }
     
     if (searchText) {
@@ -84,45 +117,41 @@ const RoomAssetsPage: React.FC = () => {
   };
 
   const handleCheck = (asset: Asset) => {
-    const updated = assets.map(a => {
-      if (a.id === asset.id) {
-        const record = {
-          ...a,
-          checkStatus: 'normal' as AssetStatus,
-          checkTime: new Date().toLocaleString()
-        };
-        storage.saveDraftRecord({
-          id: `auto-${Date.now()}`,
-          taskId,
-          assetId: asset.id,
-          status: 'normal',
-          remark: '',
-          photos: [],
-          isDraft: false,
-          checkedAt: new Date().toLocaleString(),
-          taskName: currentTask?.name || '盘点任务',
-          batchNo: currentTask?.batchNo || '',
-          assetNo: asset.assetNo,
-          assetName: asset.name,
-          checker: '当前用户',
-          department: asset.department,
-          roomName: asset.roomName
-        });
-        return record;
-      }
-      return a;
-    });
-    setAssets(updated);
+    const checkTime = new Date().toLocaleString();
+    const status = 'normal' as AssetStatus;
+    
+    markAssetChecked(asset.id, asset.roomId, taskId || 'task-001', status);
+
+    const record: CheckRecord = {
+      id: `auto-${Date.now()}`,
+      taskId: taskId || 'task-001',
+      taskName: currentTask?.name || '盘点任务',
+      batchNo: currentTask?.batchNo || '',
+      assetId: asset.id,
+      assetNo: asset.assetNo,
+      assetName: asset.name,
+      status: status,
+      remark: '',
+      photos: [],
+      checker: '当前用户',
+      department: asset.department,
+      roomName: asset.roomName,
+      checkedAt: checkTime,
+      isDraft: false
+    };
+
+    submitCheckResult(record, false);
+
     Taro.showToast({
       title: '已标记正常',
       icon: 'success',
       duration: 1500
     });
-    console.log('[RoomAssetsPage] 快速标记资产正常', asset.assetNo);
+    console.log('[RoomAssetsPage] 快速标记资产正常', asset.assetNo, '房间进度:', roomProgress.checked + 1, '/', roomProgress.total);
   };
 
-  const uncheckedCount = assets.filter(a => a.checkStatus === 'unchecked').length;
-  const checkedCount = assets.filter(a => a.checkStatus !== 'unchecked').length;
+  const uncheckedCount = assets.filter(a => !a.checkStatus || a.checkStatus === 'unchecked').length;
+  const checkedCount = assets.filter(a => a.checkStatus && a.checkStatus !== 'unchecked').length;
 
   return (
     <View className={styles.roomAssetsPage}>
@@ -154,9 +183,9 @@ const RoomAssetsPage: React.FC = () => {
         <View className={styles.progressSection}>
           <View className={styles.progressHeader}>
             <Text className={styles.progressTitle}>盘点进度</Text>
-            <Text className={styles.progressText}>{roomProgress}%</Text>
+            <Text className={styles.progressText}>{roomProgress.progress}%</Text>
           </View>
-          <ProgressBar progress={roomProgress} height={16} />
+          <ProgressBar progress={roomProgress.progress} height={16} />
         </View>
 
         {showSearch && (

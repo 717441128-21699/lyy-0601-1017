@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Input, Image, Button, ScrollView, Textarea } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
@@ -9,7 +9,7 @@ import SearchBar from '@/components/SearchBar';
 import AssetCard from '@/components/AssetCard';
 import StatusTag from '@/components/StatusTag';
 import { storage } from '@/utils/storage';
-import { mockTasks } from '@/data/mockTasks';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 const statusOptions = [
@@ -26,11 +26,35 @@ const ScanPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [remark, setRemark] = useState('');
+  
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const getTasksWithState = useInventoryStore(state => state.getTasksWithState);
+  const submitCheckResult = useInventoryStore(state => state.submitCheckResult);
+  const markAssetChecked = useInventoryStore(state => state.markAssetChecked);
+  const getAssetWithCheckState = useInventoryStore(state => state.getAssetWithCheckState);
+
+  const ongoingTasks = useMemo(() => {
+    return getTasksWithState().filter(t => t.status === 'ongoing');
+  }, [getTasksWithState, refreshTrigger]);
+
+  const currentTask = ongoingTasks[0] || null;
 
   const handleScan = async () => {
+    if (!currentTask) {
+      Taro.showToast({
+        title: '请先领取盘点任务',
+        icon: 'none',
+        duration: 2000
+      });
+      Taro.switchTab({
+        url: '/pages/tasks/index'
+      });
+      return;
+    }
+
     const result = await scan();
     if (result) {
-      const asset = getAssetByNo(result);
+      const asset = getAssetWithCheckState(result);
       if (asset) {
         setCurrentAsset(asset);
         setSelectedStatus(null);
@@ -38,12 +62,20 @@ const ScanPage: React.FC = () => {
         setRemark('');
         console.log('[ScanPage] 扫码找到资产', asset.assetNo);
       } else {
-        Taro.showToast({
-          title: '未找到该资产',
-          icon: 'none',
-          duration: 2000
-        });
-        console.log('[ScanPage] 扫码未找到资产', result);
+        const rawAsset = getAssetByNo(result);
+        if (rawAsset) {
+          setCurrentAsset(rawAsset);
+          setSelectedStatus(null);
+          setPhotos([]);
+          setRemark('');
+        } else {
+          Taro.showToast({
+            title: '未找到该资产',
+            icon: 'none',
+            duration: 2000
+          });
+          console.log('[ScanPage] 扫码未找到资产', result);
+        }
       }
     }
   };
@@ -53,7 +85,8 @@ const ScanPage: React.FC = () => {
     if (keyword.trim()) {
       const results = searchAssets(keyword);
       if (results.length > 0) {
-        setCurrentAsset(results[0]);
+        const asset = getAssetWithCheckState(results[0].id) || results[0];
+        setCurrentAsset(asset);
         setSelectedStatus(null);
         setPhotos([]);
         setRemark('');
@@ -96,11 +129,15 @@ const ScanPage: React.FC = () => {
       return;
     }
 
+    const taskId = currentTask?.id || 'task-001';
+    const taskName = currentTask?.name || '盘点任务';
+    const batchNo = currentTask?.batchNo || 'PD-2026-Q2';
+
     const record: CheckRecord = {
       id: `draft-${Date.now()}`,
-      taskId: mockTasks[0]?.id || 'task-001',
-      taskName: mockTasks[0]?.name || '盘点任务',
-      batchNo: mockTasks[0]?.batchNo || 'PD-2026-Q2',
+      taskId,
+      taskName,
+      batchNo,
       assetId: currentAsset.id,
       assetNo: currentAsset.assetNo,
       assetName: currentAsset.name,
@@ -115,6 +152,8 @@ const ScanPage: React.FC = () => {
     };
 
     storage.saveDraftRecord(record);
+    markAssetChecked(currentAsset.id, currentAsset.roomId, taskId, selectedStatus);
+    
     Taro.showToast({
       title: '已暂存',
       icon: 'success',
@@ -134,18 +173,23 @@ const ScanPage: React.FC = () => {
       return;
     }
 
+    const taskId = currentTask?.id || 'task-001';
+    const taskName = currentTask?.name || '盘点任务';
+    const batchNo = currentTask?.batchNo || 'PD-2026-Q2';
+    const isException = selectedStatus !== 'normal';
+
     Taro.showModal({
       title: '提交盘点结果',
-      content: `确定提交该资产的盘点结果吗？\n资产：${currentAsset.name}\n状态：${statusOptions.find(o => o.status === selectedStatus)?.name}`,
+      content: `确定提交该资产的盘点结果吗？\n资产：${currentAsset.name}\n状态：${statusOptions.find(o => o.status === selectedStatus)?.name}${isException ? '\n⚠️ 异常记录将自动上报' : ''}`,
       confirmText: '确认提交',
       confirmColor: '#165dff',
       success: (res) => {
         if (res.confirm) {
           const record: CheckRecord = {
             id: `record-${Date.now()}`,
-            taskId: mockTasks[0]?.id || 'task-001',
-            taskName: mockTasks[0]?.name || '盘点任务',
-            batchNo: mockTasks[0]?.batchNo || 'PD-2026-Q2',
+            taskId,
+            taskName,
+            batchNo,
             assetId: currentAsset.id,
             assetNo: currentAsset.assetNo,
             assetName: currentAsset.name,
@@ -159,7 +203,10 @@ const ScanPage: React.FC = () => {
             isDraft: false
           };
 
-          console.log('[ScanPage] 提交盘点结果', record);
+          submitCheckResult(record, isException);
+          markAssetChecked(currentAsset.id, currentAsset.roomId, taskId, selectedStatus);
+
+          console.log('[ScanPage] 提交盘点结果', record, '异常:', isException);
           Taro.showToast({
             title: '提交成功',
             icon: 'success',

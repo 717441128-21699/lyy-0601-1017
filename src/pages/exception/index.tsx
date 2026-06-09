@@ -1,35 +1,48 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Button } from '@tarojs/components';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, ScrollView, Button, usePullDownRefresh } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import { ExceptionRecord, AssetStatus } from '@/types';
-import { mockExceptions, getExceptionSummary } from '@/data/mockExceptions';
+import { getExceptionSummary } from '@/data/mockExceptions';
 import ExceptionCard from '@/components/ExceptionCard';
 import EmptyState from '@/components/EmptyState';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 type TypeFilter = 'all' | AssetStatus;
 type StatusFilter = 'all' | 'pending' | 'processing' | 'resolved';
 
 const ExceptionPage: React.FC = () => {
-  const [exceptions, setExceptions] = useState<ExceptionRecord[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(false);
 
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const getExceptionsWithLocal = useInventoryStore(state => state.getExceptionsWithLocal);
+  const refresh = useInventoryStore(state => state.refresh);
+
+  const exceptions = useMemo(() => {
+    return getExceptionsWithLocal();
+  }, [getExceptionsWithLocal, refreshTrigger]);
+
   const loadExceptions = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
-      setExceptions(mockExceptions);
+      refresh();
       setLoading(false);
       Taro.stopPullDownRefresh();
-      console.log('[ExceptionPage] 异常列表加载完成', mockExceptions.length);
+      console.log('[ExceptionPage] 异常列表刷新完成', exceptions.length);
     }, 500);
-  }, []);
+  }, [refresh, exceptions.length]);
 
   useEffect(() => {
+    refresh();
+    console.log('[ExceptionPage] 页面加载，刷新数据');
+  }, [refresh]);
+
+  usePullDownRefresh(() => {
     loadExceptions();
-  }, [loadExceptions]);
+  });
 
   const filteredExceptions = exceptions.filter(exp => {
     const typeMatch = typeFilter === 'all' || exp.type === typeFilter;
@@ -38,15 +51,22 @@ const ExceptionPage: React.FC = () => {
   });
 
   const handleGenerateSummary = () => {
-    const summary = getExceptionSummary();
+    const idle = exceptions.filter(e => e.type === 'idle').length;
+    const lost = exceptions.filter(e => e.type === 'lost').length;
+    const mismatch = exceptions.filter(e => e.type === 'mismatch').length;
+    const pending = exceptions.filter(e => e.status === 'pending').length;
+    const processing = exceptions.filter(e => e.status === 'processing').length;
+    const resolved = exceptions.filter(e => e.status === 'resolved').length;
+    const total = exceptions.length;
+
     Taro.showModal({
       title: '异常汇总报告',
-      content: `本次盘点异常汇总：\n\n异常总数：${summary.total} 项\n\n闲置资产：${summary.idle} 项\n丢失资产：${summary.lost} 项\n位置不符：${summary.mismatch} 项\n\n待处理：${summary.pending} 项\n处理中：${summary.processing} 项\n已解决：${summary.resolved} 项`,
+      content: `本次盘点异常汇总：\n\n异常总数：${total} 项\n\n闲置资产：${idle} 项\n丢失资产：${lost} 项\n位置不符：${mismatch} 项\n\n待处理：${pending} 项\n处理中：${processing} 项\n已解决：${resolved} 项`,
       showCancel: false,
       confirmText: '我知道了',
       confirmColor: '#165dff'
     });
-    console.log('[ExceptionPage] 生成异常汇总', summary);
+    console.log('[ExceptionPage] 生成异常汇总', { total, idle, lost, mismatch, pending, processing, resolved });
   };
 
   const handleExceptionClick = (exception: ExceptionRecord) => {
@@ -59,7 +79,13 @@ const ExceptionPage: React.FC = () => {
     });
   };
 
-  const summary = getExceptionSummary();
+  const summary = {
+    idle: exceptions.filter(e => e.type === 'idle').length,
+    lost: exceptions.filter(e => e.type === 'lost').length,
+    mismatch: exceptions.filter(e => e.type === 'mismatch').length,
+    pending: exceptions.filter(e => e.status === 'pending').length,
+    total: exceptions.length
+  };
 
   const typeFilters: { key: TypeFilter; label: string }[] = [
     { key: 'all', label: '全部' },

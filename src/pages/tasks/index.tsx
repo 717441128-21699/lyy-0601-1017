@@ -1,33 +1,43 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, usePullDownRefresh } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import { InventoryTask, TaskStatus } from '@/types';
-import { mockTasks } from '@/data/mockTasks';
 import TaskCard from '@/components/TaskCard';
 import EmptyState from '@/components/EmptyState';
+import { useInventoryStore } from '@/store';
 import styles from './index.module.scss';
 
 type FilterType = 'all' | TaskStatus;
 
 const TasksPage: React.FC = () => {
-  const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(false);
+  
+  const refreshTrigger = useInventoryStore(state => state.refreshTrigger);
+  const getTasksWithState = useInventoryStore(state => state.getTasksWithState);
+  const claimTask = useInventoryStore(state => state.claimTask);
+  const refresh = useInventoryStore(state => state.refresh);
+  const getHistoryWithLocal = useInventoryStore(state => state.getHistoryWithLocal);
+
+  const tasks = useMemo(() => {
+    return getTasksWithState();
+  }, [getTasksWithState, refreshTrigger]);
 
   const loadTasks = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
-      setTasks(mockTasks);
+      refresh();
       setLoading(false);
       Taro.stopPullDownRefresh();
-      console.log('[TasksPage] 任务列表加载完成', mockTasks.length);
+      console.log('[TasksPage] 任务列表刷新完成', tasks.length);
     }, 500);
-  }, []);
+  }, [refresh, tasks.length]);
 
   useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    refresh();
+    console.log('[TasksPage] 页面加载，刷新数据');
+  }, [refresh]);
 
   usePullDownRefresh(() => {
     loadTasks();
@@ -46,35 +56,54 @@ const TasksPage: React.FC = () => {
       confirmColor: '#165dff',
       success: (res) => {
         if (res.confirm) {
-          setTasks(prev => prev.map(task => 
-            task.id === taskId 
-              ? { ...task, status: 'ongoing' as TaskStatus, claimedAt: new Date().toLocaleString() }
-              : task
-          ));
-          Taro.showToast({
-            title: '领取成功',
-            icon: 'success',
-            duration: 2000
-          });
-          console.log('[TasksPage] 任务领取成功', taskId);
+          const success = claimTask(taskId);
+          if (success) {
+            Taro.showToast({
+              title: '领取成功',
+              icon: 'success',
+              duration: 2000
+            });
+            console.log('[TasksPage] 任务领取成功', taskId);
+          } else {
+            Taro.showToast({
+              title: '领取失败',
+              icon: 'none',
+              duration: 2000
+            });
+          }
         }
-      }
+      })
     });
   };
 
   const handleEnter = (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task && task.status === 'completed') {
-      Taro.navigateTo({
-        url: `/pages/history-detail/index?id=${taskId}`
+      const historyList = getHistoryWithLocal();
+      const history = historyList.find(h => h.batchNo === task.batchNo);
+      if (history) {
+        Taro.navigateTo({
+          url: `/pages/history-detail/index?id=${history.id}`
+        });
+        console.log('[TasksPage] 跳转到历史盘点详情', history.id, history.batchNo);
+      } else {
+        Taro.showToast({
+          title: '历史记录不存在',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    } else if (task && task.status === 'ongoing') {
+      Taro.switchTab({
+        url: '/pages/scan/index'
       });
+      console.log('[TasksPage] 进入扫码盘点', taskId);
     } else {
       Taro.showToast({
-        title: '进入盘点详情',
+        title: '请先领取任务',
         icon: 'none',
         duration: 1500
       });
-      console.log('[TasksPage] 进入任务', taskId);
     }
   };
 
